@@ -227,6 +227,47 @@ so running reconciliation twice is safe.
 
 A cleared upstream draft removes the task entirely (`deleteTasksByKeys`).
 
+### Does a completed + verified task stay on the dashboard or disappear?
+
+Short answer: once a task is `COMPLETED_VERIFIED` it is **removed from the active
+Taskee list**, but its **row is kept in the database** (not deleted).
+
+- **Removed from the list.** `buildTaskeeView` renders only `OPEN_STATES`
+  (`ACTIVE`, `OVERDUE`, `MANUALLY_CHECKED_PENDING_VERIFICATION`,
+  `REOPENED_AFTER_FAILED_VERIFICATION`). `COMPLETED_VERIFIED` is intentionally
+  not an open state, so on the next fetch the task drops off the active list.
+  Taskee only ever answers "what still needs my attention now?"
+- **Row retained in Postgres.** `syncTasksForOwner` upserts the task as
+  `COMPLETED_VERIFIED` with `verified_completed_at` (and the activity/status
+  reference); it does not delete it. Keeping the row is what makes the system
+  safe: reconciliation stays idempotent (re-runs re-confirm the same row rather
+  than recreating it), the completed follow-up cannot respawn as a new task, and
+  there is an audit trail of when and how it was verified.
+- **Only a cleared upstream draft deletes the row.** A physical delete happens
+  solely when the HubSpot draft field is emptied (the follow-up no longer exists
+  upstream), via `deleteTasksByKeys`.
+
+Visible sequence for the AE:
+
+```
+1. AE ticks the box
+   -> MANUALLY_CHECKED_PENDING_VERIFICATION
+   -> STAYS visible, crossed out ("Verification pending")   [the "done" moment]
+
+2. 30-min reconciliation finds genuine HubSpot activity
+   -> COMPLETED_VERIFIED
+   -> DROPS off the active list on the next fetch
+
+3. AE completed the follow-up directly in HubSpot (never ticked the box)
+   -> silently becomes COMPLETED_VERIFIED
+   -> simply stops appearing; no manual action needed
+```
+
+Design note: retained `COMPLETED_VERIFIED` rows make a future "Completed today"
+collapsed section (or a completed-count metric) a pure read of existing data -
+no schema change - if that view is ever wanted. Today, by spec, verified tasks
+leave the active list to keep it focused.
+
 ## Adapter and service seams
 
 Each seam has one responsibility, so a future Chrome extension (or any new
