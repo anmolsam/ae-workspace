@@ -1,0 +1,20 @@
+# Railway service config for the ae-workspace API (apps/api).
+# Deploy this service with its root set to apps/api, or point Railway at the
+# repo root and set the service root directory to apps/api in the dashboard.
+
+[build]
+# Nixpacks auto-detects Node 20+ and the npm workspaces install. Swap to
+# "dockerfile" here if you add an apps/api/Dockerfile later.
+builder = "nixpacks"
+
+[deploy]
+# The API entrypoint. Matches "start" in apps/api/package.json.
+startCommand = "node src/server.js"
+
+# Liveness probe hits the unauthenticated health route in src/server.js.
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+
+# Restart the container on crash instead of leaving the service down.
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

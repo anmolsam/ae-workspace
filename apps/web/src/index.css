@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --canvas: 249 250 251;
+    --surface: 255 255 255;
+    --line: 229 231 235;
+    --ink: 17 24 39;
+    --ink-muted: 75 85 99;
+    --ink-subtle: 156 163 175;
+    --accent: 37 99 235;
+    --accent-soft: 239 246 255;
+    --danger: 190 46 46;
+    --danger-soft: 253 242 242;
+    --success: 22 128 92;
+    --success-soft: 240 250 245;
+    --warn: 180 120 20;
+    --warn-soft: 253 248 238;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer components {
+  .skeleton {
+    @apply rounded bg-line/70;
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--line) / 0.6) 25%,
+      rgb(var(--line) / 0.3) 37%,
+      rgb(var(--line) / 0.6) 63%
+    );
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+}

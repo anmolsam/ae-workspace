@@ -1,0 +1,12 @@
+{
+  "name": "@ae-workspace/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./hubspot-fields": "./src/hubspot-fields.js",
+    "./follow-up-state": "./src/follow-up-state.js"
+  }
+}

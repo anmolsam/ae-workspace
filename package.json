@@ -1,0 +1,22 @@
+{
+  "name": "ae-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal AE workspace — Taskee | Briefy | Revy. Consumes HubSpot (follow-ups/activity) and ROMA (Fight Score/funnel); never rebuilds upstream logic.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace apps/api",
+    "dev:web": "npm run dev --workspace apps/web",
+    "dev": "npm run dev:api & npm run dev:web",
+    "start": "npm run start --workspace apps/api",
+    "test": "npm run test --workspace apps/api",
+    "build": "npm run build --workspace apps/web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
