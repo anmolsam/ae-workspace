@@ -8,6 +8,59 @@ The governing rule: this app never rebuilds upstream logic. It reads HubSpot
 (follow-ups and activity) and ROMA (Fight Score and funnel), and owns only a thin
 app-local layer of task state in Postgres.
 
+## End-to-end journey (final outcome)
+
+What an AE actually experiences, start to finish - the outcome this architecture
+produces:
+
+```
+1. SIGN IN
+   AE opens the web app -> "Sign in with Google" -> Supabase Google SSO
+   (calendar.readonly scope). Google-verified Workspace email returned.
+        |
+        v
+2. BECOME AN AE
+   Backend verifies the token, enforces the @attentive.ai domain, maps the
+   email -> HubSpot owner id, caches identity in ae_identities. From here every
+   request is scoped to THIS owner id only - no AE can see another's data.
+        |
+        v
+3. TASKEE  (the outcome: "what needs my attention right now?")
+   - Reads the AE's HubSpot deals; every populated AI-draft field becomes one
+     follow-up task. overdueAt = draftGeneratedAt + 24h.
+   - Reconciles each against HubSpot truth, renders grouped + sorted:
+        OVERDUE (pinned top, restrained red) -> TODAY -> TOMORROW -> THIS WEEK
+   - Summary chips: [ Due Today ] [ Overdue ] [ This Week ].
+   - Each card: company, deal, follow-up type, due/overdue, checkbox,
+     expandable AI draft, "Open Deal in HubSpot" deep link.
+   - Tick a box -> instant strikethrough. If HubSpot later shows no real
+     activity, the task RESPAWNS to its correct position (top + red if overdue).
+     Genuine HubSpot activity auto-checks it as COMPLETED_VERIFIED.
+   - Bottom of page: the AE's FIGHT SCORE and FUNNEL, pulled from ROMA as-is,
+     scoped to this AE. Never recomputed.
+        |
+        v
+4. BRIEFY  (the outcome: "what should I know before my next call?")
+   - Lists the AE's upcoming Google Calendar meetings with brief status
+     (Ready / Generating / Needs Data / Completed).
+   - Expands into a pre-call brief with dynamic sections assembled from the
+     research providers (Exa / ZoomInfo / Jina). Lifecycle:
+     queued -> processing -> completed | failed.
+        |
+        v
+5. REVY   (placeholder: a polished "Revy is coming next" empty state)
+        |
+        v
+6. STAYS TRUE
+   A 30-minute reconciliation cron re-verifies every open task against HubSpot,
+   idempotently. Taskee is always consistent with reality, whether or not the
+   AE remembered to tick a box.
+```
+
+The guarantee the architecture enforces end-to-end: the AE gets instant,
+optimistic feedback, but can never make a genuine follow-up disappear without
+real HubSpot activity - and never sees another AE's data.
+
 ## Layered architecture
 
 ```
