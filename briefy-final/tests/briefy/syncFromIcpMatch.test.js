@@ -37,6 +37,7 @@ test('mirrors an enriched ICP Match row, resolving Deal Owner from HubSpot (ICP 
     createRecordFn: async (table, fields) => { created.push({ table, fields }); },
     createBaseFn: () => ({}),
     resolveOwnerFn: async (dealId) => (dealId === '111' ? 'Varun Sharma' : ''),
+    ownerAllowlist: [], // explicit: don't inherit a dev .env allowlist
   });
 
   assert.equal(result.checked, 1);

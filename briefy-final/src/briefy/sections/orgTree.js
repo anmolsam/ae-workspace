@@ -1,4 +1,5 @@
 import { searchContacts } from '../../lib/zoominfo.js';
+import { serpPeople } from '../../lib/scrapers.js';
 
 const ESTIMATOR_TITLES = ['estimator', 'estimating', 'preconstruction'];
 const PM_TITLES = ['project manager', 'program manager', 'construction manager'];
@@ -6,9 +7,9 @@ const UPPER_MGMT_TITLES = ['ceo', 'president', 'owner', 'vice president', 'vp', 
 
 function categorize(title) {
   const t = (title || '').toLowerCase();
-  if (UPPER_MGMT_TITLES.some(k => t.includes(k))) return 'upperManagement';
-  if (PM_TITLES.some(k => t.includes(k))) return 'programManagers';
-  if (ESTIMATOR_TITLES.some(k => t.includes(k))) return 'estimators';
+  if (UPPER_MGMT_TITLES.some((k) => t.includes(k))) return 'upperManagement';
+  if (PM_TITLES.some((k) => t.includes(k))) return 'programManagers';
+  if (ESTIMATOR_TITLES.some((k) => t.includes(k))) return 'estimators';
   return null;
 }
 
@@ -16,20 +17,45 @@ function emptyTree() {
   return { estimators: [], programManagers: [], upperManagement: [] };
 }
 
+function fill(tree, contacts, source) {
+  for (const c of contacts) {
+    const bucket = categorize(c.title);
+    if (bucket) tree[bucket].push({ name: c.name, title: c.title, email: c.email || '', source });
+  }
+}
+
+function total(tree) {
+  return tree.estimators.length + tree.programManagers.length + tree.upperManagement.length;
+}
+
 /**
+ * Build the org tree. Primary source is ZoomInfo; when it returns nothing (or
+ * errors), fall back to SerpAPI LinkedIn people search so the section is filled
+ * with real decision-makers rather than showing an error. Output shape is
+ * unchanged (estimators / programManagers / upperManagement of {name,title,email,source}).
+ *
  * @param {string} domain
- * @returns {Promise<{orgTree: {estimators: Array, programManagers: Array, upperManagement: Array}, status: 'ready'|'error'}>}
+ * @param {string} [companyName]
  */
-export async function buildOrgTree(domain) {
+export async function buildOrgTree(domain, companyName) {
+  const tree = emptyTree();
+  let zoomInfoError = false;
+
   try {
     const contacts = await searchContacts(domain, [...ESTIMATOR_TITLES, ...PM_TITLES, ...UPPER_MGMT_TITLES]);
-    const tree = emptyTree();
-    for (const c of contacts) {
-      const bucket = categorize(c.title);
-      if (bucket) tree[bucket].push({ ...c, source: 'ZoomInfo' });
-    }
-    return { orgTree: tree, status: 'ready' };
-  } catch (err) {
-    return { orgTree: emptyTree(), status: 'error', error: err.message };
+    fill(tree, contacts, 'ZoomInfo');
+  } catch {
+    zoomInfoError = true;
   }
+
+  // Fallback: if ZoomInfo found nobody, search LinkedIn via SerpAPI.
+  if (total(tree) === 0) {
+    const people = await serpPeople(companyName, domain).catch(() => []);
+    fill(tree, people, 'LinkedIn (via Google)');
+  }
+
+  if (total(tree) > 0) return { orgTree: tree, status: 'ready' };
+  // Nothing anywhere: 'ready' with an empty tree renders "No contacts found."
+  // Only report 'error' if ZoomInfo threw and the fallback also found nothing.
+  return { orgTree: tree, status: zoomInfoError ? 'error' : 'ready' };
 }

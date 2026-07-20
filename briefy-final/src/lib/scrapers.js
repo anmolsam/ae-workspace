@@ -218,3 +218,62 @@ Only classify based on results that clearly belong to ${domain}.\n\n${'─'.repe
     return null;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXA — recent news (for richer Overview + Buying Intent signals)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function exaNews(companyName, domain, num = 5) {
+  if (!EXA_API_KEY || (!companyName && !domain)) return [];
+  try {
+    const res = await fetch('https://api.exa.ai/search', {
+      method: 'POST',
+      headers: { 'x-api-key': EXA_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `${companyName || domain} construction company recent news, projects, expansion, hiring, contracts`,
+        type: 'auto', numResults: num, category: 'news',
+        contents: { text: { maxCharacters: 500 } },
+      }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.results || []).map((r) => ({ title: r.title, url: r.url, text: r.text || '' }));
+  } catch {
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SERPAPI — find decision-makers on LinkedIn (Org Tree fallback)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function serpPeople(companyName, domain) {
+  const KEY = process.env.SERPAPI_KEY;
+  if (!KEY || (!companyName && !domain)) return [];
+  const co = companyName || domain;
+  const queries = [
+    `site:linkedin.com/in "${co}" (estimator OR "chief estimator" OR preconstruction)`,
+    `site:linkedin.com/in "${co}" ("project manager" OR "program manager" OR "construction manager")`,
+    `site:linkedin.com/in "${co}" (president OR owner OR CEO OR "vice president" OR director OR principal)`,
+  ];
+  const people = [];
+  for (const q of queries) {
+    try {
+      const res = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(q)}&num=5&api_key=${KEY}`, { signal: AbortSignal.timeout(20_000) });
+      if (!res.ok) continue;
+      const data = await res.json();
+      for (const r of (data.organic_results || []).slice(0, 5)) {
+        // LinkedIn result titles look like "Jane Doe - Chief Estimator - Acme | LinkedIn"
+        const raw = (r.title || '').replace(/\s*\|\s*LinkedIn.*$/i, '').trim();
+        const parts = raw.split(/\s+[-–—]\s+/);
+        const name = parts[0]?.trim();
+        const title = parts[1]?.trim() || '';
+        if (name && /linkedin\.com\/in/i.test(r.link || '')) {
+          people.push({ name, title, link: r.link, source: 'LinkedIn (via Google)' });
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
+  // de-dupe by name
+  const seen = new Set();
+  return people.filter((p) => { const k = p.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+}

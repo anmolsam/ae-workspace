@@ -67,12 +67,12 @@ export async function buildBrief(record, deps = {}) {
   const domain = resolution.domain;
 
   const [overview, orgTree, revenue, hubspotSignals, hiringSignals, intent] = await Promise.all([
-    buildOverviewFn(domain, existingExaContent),
-    buildOrgTreeFn(domain),
+    buildOverviewFn(domain, existingExaContent, companyName),
+    buildOrgTreeFn(domain, companyName),
     buildRevenueFn(domain, dealId),
     buildHubspotSignalsFn(dealId),
     buildHiringSignalsFn(domain, companyName),
-    buildIntentFn(domain),
+    buildIntentFn(domain, companyName),
   ]);
 
   const sectionStatus = JSON.stringify({

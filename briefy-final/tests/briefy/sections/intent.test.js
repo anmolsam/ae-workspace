@@ -7,10 +7,12 @@ process.env.ZOOMINFO_CLIENT_SECRET = 'test-secret';
 
 import { buildIntent } from '../../../src/briefy/sections/intent.js';
 
-test('returns unavailable when ZOOMINFO_INTENT_TOPICS is unset', async () => {
+test('falls back to signal-based intent when ZOOMINFO_INTENT_TOPICS is unset (no news -> ready, empty)', async (t) => {
   delete process.env.ZOOMINFO_INTENT_TOPICS;
-  const result = await buildIntent('acme.com');
-  assert.equal(result.status, 'unavailable');
+  // Mock fetch so exaNews returns no results -> no LLM call -> empty signal.
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ results: [] }), { status: 200 }));
+  const result = await buildIntent('acme.com', 'Acme');
+  assert.equal(result.status, 'ready');
   assert.equal(result.intentScore, '');
 });
 

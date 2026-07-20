@@ -32,11 +32,14 @@ test('reuses the already-copied Exa Content instead of re-scraping when non-empt
       choices: [{ message: { content: '{"overview": "From existing content.", "portfolio": ""}' } }],
     }), { status: 200 });
   });
-  const result = await buildOverview('acme.com', 'PAGES SCRAPED (2)\n...pre-existing ICP Match content...');
+  const result = await buildOverview('acme.com', 'PAGES SCRAPED (2)\n...pre-existing ICP Match content...', 'Acme');
   assert.equal(result.status, 'ready');
   assert.equal(result.overview, 'From existing content.');
+  // Must not RE-SCRAPE the company site (exa /contents or firecrawl) when
+  // existing content is provided. An exa.ai/search NEWS call is allowed — it
+  // enriches the summary, it is not a site re-scrape.
   assert.ok(
-    calledUrls.every(u => !u.includes('exa.ai') && !u.includes('firecrawl.dev')),
-    'should not scrape at all when existing content is already provided',
+    calledUrls.every(u => !u.includes('exa.ai/contents') && !u.includes('firecrawl.dev')),
+    'should not re-scrape the company site when existing content is already provided',
   );
 });
