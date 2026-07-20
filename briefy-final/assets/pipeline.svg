@@ -1,0 +1,211 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" width="1200" height="560">
+  <defs>
+    <linearGradient id="grad-accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1F6FEB"/>
+      <stop offset="100%" stop-color="#00C8A8"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#30363D"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#388BFD"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3FB950"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#D29922"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="560" fill="#0D1117"/>
+
+  <!-- Top bar -->
+  <rect y="0" width="1200" height="2" fill="url(#grad-accent)"/>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PHASE LABELS -->
+  <!-- ═══════════════════════════════════════ -->
+
+  <!-- Phase 1: DATA COLLECTION (top row) -->
+  <text x="600" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        font-size="11" font-weight="600" fill="#484F58" text-anchor="middle" letter-spacing="2">
+    PHASE 1 — DATA COLLECTION
+  </text>
+
+  <!-- Phase 2: CLASSIFICATION -->
+  <text x="600" y="278" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        font-size="11" font-weight="600" fill="#484F58" text-anchor="middle" letter-spacing="2">
+    PHASE 2 — AI CLASSIFICATION
+  </text>
+
+  <!-- Phase 3: VERIFICATION -->
+  <text x="600" y="418" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        font-size="11" font-weight="600" fill="#484F58" text-anchor="middle" letter-spacing="2">
+    PHASE 3 — DOUBLE-CHECK VERIFICATION
+  </text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PHASE 1 BOXES (y=50, h=100) -->
+  <!-- ═══════════════════════════════════════ -->
+
+  <!-- Box widths: 150px, gaps: 15px, 5 boxes -->
+  <!-- Total: 5*150 + 4*15 = 810, start: (1200-810)/2 = 195 -->
+  <!-- Centers: 195+75=270, 195+150+15+75=435, +165=600, +165=765, +165=930 -->
+
+  <!-- [1] Lead Domain -->
+  <rect x="45" y="50" width="150" height="90" rx="8" fill="#161B22" stroke="#30363D" stroke-width="1.5"/>
+  <text x="120" y="85" font-family="system-ui, sans-serif" font-size="22" fill="#388BFD" text-anchor="middle">⬡</text>
+  <text x="120" y="108" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#E6EDF3" text-anchor="middle">Lead Domain</text>
+  <text x="120" y="126" font-family="system-ui, sans-serif" font-size="11" fill="#484F58" text-anchor="middle">company.com</text>
+
+  <!-- Arrow Lead → Exa -->
+  <line x1="195" y1="95" x2="238" y2="95" stroke="#30363D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- [2] Exa AI -->
+  <rect x="243" y="50" width="150" height="90" rx="8" fill="#161B22" stroke="#388BFD" stroke-width="1.5"/>
+  <rect x="243" y="50" width="150" height="4" rx="2" fill="#388BFD" opacity="0.6"/>
+  <text x="318" y="87" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#388BFD" text-anchor="middle" letter-spacing="1">EXA AI</text>
+  <text x="318" y="104" font-family="system-ui, sans-serif" font-size="11" fill="#8B949E" text-anchor="middle">Multi-page scrape</text>
+  <text x="318" y="120" font-family="system-ui, sans-serif" font-size="10" fill="#484F58" text-anchor="middle">www + non-www · 13 paths</text>
+
+  <!-- Arrow Exa → Firecrawl (with label "if thin") -->
+  <line x1="393" y1="95" x2="436" y2="95" stroke="#30363D" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="414" y="88" font-family="system-ui, sans-serif" font-size="10" fill="#484F58" text-anchor="middle">if thin</text>
+
+  <!-- [3] Firecrawl -->
+  <rect x="441" y="50" width="150" height="90" rx="8" fill="#161B22" stroke="#D29922" stroke-width="1.5"/>
+  <rect x="441" y="50" width="150" height="4" rx="2" fill="#D29922" opacity="0.6"/>
+  <text x="516" y="87" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#D29922" text-anchor="middle" letter-spacing="1">FIRECRAWL</text>
+  <text x="516" y="104" font-family="system-ui, sans-serif" font-size="11" fill="#8B949E" text-anchor="middle">Live direct scrape</text>
+  <text x="516" y="120" font-family="system-ui, sans-serif" font-size="10" fill="#484F58" text-anchor="middle">&lt;2 pages or &lt;2000 chars</text>
+
+  <!-- Arrow Firecrawl → ZoomInfo (with label "if empty") -->
+  <line x1="591" y1="95" x2="634" y2="95" stroke="#30363D" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="612" y="88" font-family="system-ui, sans-serif" font-size="10" fill="#484F58" text-anchor="middle">if empty</text>
+
+  <!-- [4] ZoomInfo -->
+  <rect x="639" y="50" width="150" height="90" rx="8" fill="#161B22" stroke="#3FB950" stroke-width="1.5"/>
+  <rect x="639" y="50" width="150" height="4" rx="2" fill="#3FB950" opacity="0.6"/>
+  <text x="714" y="87" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#3FB950" text-anchor="middle" letter-spacing="1">ZOOMINFO</text>
+  <text x="714" y="104" font-family="system-ui, sans-serif" font-size="11" fill="#8B949E" text-anchor="middle">GTM Enrich API</text>
+  <text x="714" y="120" font-family="system-ui, sans-serif" font-size="10" fill="#484F58" text-anchor="middle">industry · headcount · location</text>
+
+  <!-- Arrow ZoomInfo → SerpAPI -->
+  <line x1="789" y1="95" x2="832" y2="95" stroke="#30363D" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="810" y="88" font-family="system-ui, sans-serif" font-size="10" fill="#484F58" text-anchor="middle">if empty</text>
+
+  <!-- [5] SerpAPI -->
+  <rect x="837" y="50" width="150" height="90" rx="8" fill="#161B22" stroke="#BC8CFF" stroke-width="1.5"/>
+  <rect x="837" y="50" width="150" height="4" rx="2" fill="#BC8CFF" opacity="0.6"/>
+  <text x="912" y="87" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#BC8CFF" text-anchor="middle" letter-spacing="1">SERPAPI</text>
+  <text x="912" y="104" font-family="system-ui, sans-serif" font-size="11" fill="#8B949E" text-anchor="middle">Google Search + Maps</text>
+  <text x="912" y="120" font-family="system-ui, sans-serif" font-size="10" fill="#484F58" text-anchor="middle">KG · local pack · organic</text>
+
+  <!-- Arrow SerpAPI → Not Found -->
+  <line x1="987" y1="95" x2="1020" y2="95" stroke="#30363D" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="1003" y="88" font-family="system-ui, sans-serif" font-size="10" fill="#484F58" text-anchor="middle">if empty</text>
+
+  <!-- [Not Found] -->
+  <rect x="1025" y="62" width="120" height="66" rx="8" fill="#161B22" stroke="#484F58" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="1085" y="93" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#484F58" text-anchor="middle">Not Found</text>
+  <text x="1085" y="111" font-family="system-ui, sans-serif" font-size="10" fill="#484F58" text-anchor="middle">all sources failed</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- VERTICAL CONNECTORS (Phase 1 → Phase 2) -->
+  <!-- ═══════════════════════════════════════ -->
+
+  <!-- Down arrow from center of data sources to Gemini box -->
+  <!-- From area between boxes 3 and 4 (center ~600) going down -->
+  <line x1="600" y1="145" x2="600" y2="288" stroke="#30363D" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="630" y="220" font-family="system-ui, sans-serif" font-size="11" fill="#484F58">context found</text>
+
+  <!-- Bracket line across all phase 1 boxes to center arrow -->
+  <line x1="318" y1="145" x2="912" y2="145" stroke="#30363D" stroke-width="1" stroke-dasharray="2,4"/>
+  <line x1="318" y1="140" x2="318" y2="150" stroke="#30363D" stroke-width="1.5"/>
+  <line x1="912" y1="140" x2="912" y2="150" stroke="#30363D" stroke-width="1.5"/>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PHASE 2: GEMINI (y=290, h=90) -->
+  <!-- ═══════════════════════════════════════ -->
+  <rect x="300" y="290" width="600" height="90" rx="8" fill="#161B22" stroke="#BC8CFF" stroke-width="2"/>
+  <rect x="300" y="290" width="600" height="4" rx="2" fill="#BC8CFF" opacity="0.7"/>
+
+  <text x="600" y="328" font-family="-apple-system, sans-serif" font-size="14" font-weight="700"
+        fill="#BC8CFF" text-anchor="middle" letter-spacing="1">GEMINI 2.5 PRO — First Pass Classification</text>
+  <text x="600" y="350" font-family="system-ui, sans-serif" font-size="12" fill="#8B949E" text-anchor="middle">
+    COMPANY QUALIFIER v2 · 22 contractor trades · 2+ keyword match threshold
+  </text>
+  <text x="600" y="368" font-family="system-ui, sans-serif" font-size="11" fill="#484F58" text-anchor="middle">
+    Electrical · HVAC · Plumbing · Concrete · Civil · Earthwork · Roofing · Structural Steel · GC · and 13 more
+  </text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- DECISION FORK (y=385 → branches) -->
+  <!-- ═══════════════════════════════════════ -->
+
+  <!-- Down from Gemini, then split -->
+  <line x1="600" y1="380" x2="600" y2="405" stroke="#30363D" stroke-width="1.5"/>
+
+  <!-- Left branch: ICP - Contractor -->
+  <line x1="600" y1="405" x2="290" y2="405" stroke="#3FB950" stroke-width="1.5"/>
+  <line x1="290" y1="405" x2="290" y2="428" stroke="#3FB950" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <text x="430" y="398" font-family="system-ui, sans-serif" font-size="11" fill="#3FB950" text-anchor="middle">ICP - Contractor ✓</text>
+
+  <!-- Right branch: Not ICP / Partial ICP -->
+  <line x1="600" y1="405" x2="910" y2="405" stroke="#D29922" stroke-width="1.5"/>
+  <line x1="910" y1="405" x2="910" y2="428" stroke="#D29922" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <text x="770" y="398" font-family="system-ui, sans-serif" font-size="11" fill="#D29922" text-anchor="middle">Not ICP / Partial ICP</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- LEFT BRANCH: ICP - Contractor (y=430) -->
+  <!-- ═══════════════════════════════════════ -->
+  <rect x="165" y="430" width="250" height="80" rx="8" fill="#161B22" stroke="#3FB950" stroke-width="2"/>
+  <rect x="165" y="430" width="250" height="4" rx="2" fill="#3FB950"/>
+  <text x="290" y="462" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#3FB950" text-anchor="middle">ICP - Contractor</text>
+  <text x="290" y="481" font-family="system-ui, sans-serif" font-size="11" fill="#8B949E" text-anchor="middle">Trade · Keywords · Reason</text>
+  <text x="290" y="498" font-family="system-ui, sans-serif" font-size="11" fill="#484F58" text-anchor="middle">→ written to Airtable</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- RIGHT BRANCH: DOUBLE-CHECK (y=430) -->
+  <!-- ═══════════════════════════════════════ -->
+  <rect x="785" y="430" width="250" height="80" rx="8" fill="#161B22" stroke="#D29922" stroke-width="2"/>
+  <rect x="785" y="430" width="250" height="4" rx="2" fill="#D29922"/>
+  <text x="910" y="458" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#D29922" text-anchor="middle">AUTO DOUBLE-CHECK</text>
+
+  <!-- Perplexity inner box -->
+  <rect x="795" y="465" width="105" height="36" rx="5" fill="#0D1117" stroke="#388BFD" stroke-width="1"/>
+  <text x="848" y="479" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#388BFD" text-anchor="middle">Perplexity Sonar</text>
+  <text x="848" y="493" font-family="system-ui, sans-serif" font-size="9" fill="#484F58" text-anchor="middle">live web research</text>
+
+  <!-- Claude inner box -->
+  <rect x="915" y="465" width="110" height="36" rx="5" fill="#0D1117" stroke="#BC8CFF" stroke-width="1"/>
+  <text x="970" y="479" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#BC8CFF" text-anchor="middle">Claude Sonnet</text>
+  <text x="970" y="493" font-family="system-ui, sans-serif" font-size="9" fill="#484F58" text-anchor="middle">2nd opinion</text>
+
+  <!-- Arrow from double-check down to Airtable -->
+  <line x1="910" y1="510" x2="910" y2="530" stroke="#D29922" stroke-width="1.5"/>
+  <line x1="910" y1="530" x2="740" y2="530" stroke="#D29922" stroke-width="1.5"/>
+  <line x1="740" y1="530" x2="740" y2="505" stroke="#D29922" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <text x="820" y="524" font-family="system-ui, sans-serif" font-size="10" fill="#D29922" text-anchor="middle">upgrade if warranted</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- AIRTABLE OUTPUT (centered, y=505) -->
+  <!-- ═══════════════════════════════════════ -->
+  <rect x="475" y="490" width="520" height="55" rx="8" fill="#161B22" stroke="#00C8A8" stroke-width="2"/>
+  <rect x="475" y="490" width="520" height="3" rx="1" fill="url(#grad-accent)"/>
+  <text x="735" y="518" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#00C8A8" text-anchor="middle">
+    AIRTABLE — ICP Match Final
+  </text>
+  <text x="735" y="536" font-family="system-ui, sans-serif" font-size="11" fill="#8B949E" text-anchor="middle">
+    ICP Status · Trade Category · Matched Keywords · Fit Reason · Double Checked ✓
+  </text>
+
+  <!-- Arrow from ICP-Contractor left box to Airtable -->
+  <line x1="415" y1="470" x2="470" y2="470" stroke="#3FB950" stroke-width="1.5"/>
+  <line x1="470" y1="470" x2="470" y2="517" stroke="#3FB950" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+
+  <!-- Bottom bar -->
+  <rect y="558" width="1200" height="2" fill="url(#grad-accent)"/>
+</svg>

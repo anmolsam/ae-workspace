@@ -1,0 +1,9 @@
+.env
+.env*.local
+node_modules/
+.firecrawl/
+data/enriched-pilots.json
+.superpowers/
+.claude/settings.local.json
+.claude/worktrees/
+.next/

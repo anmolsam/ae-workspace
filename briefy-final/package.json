@@ -1,0 +1,30 @@
+{
+  "name": "icp-match",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/icp-final.js",
+    "watch": "node src/watch.js",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "test-table": "node src/run-test-table.js",
+    "doublecheck": "node src/icp-final.js --doublecheck",
+    "rerun-all": "node src/icp-final.js --rerun-all",
+    "sync-hubspot": "node src/push-to-hubspot.js",
+    "sync-hubspot:watch": "node src/push-to-hubspot.js --watch",
+    "sync-hubspot:dry": "node src/push-to-hubspot.js --dry-run",
+    "briefy:setup-table": "node scripts/setup-briefy-table.js",
+    "briefy": "node src/briefy/engine.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "airtable": "^0.12.2",
+    "dotenv": "^17.4.2"
+  }
+}

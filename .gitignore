@@ -12,3 +12,10 @@ apps/web/dist/
 
 # supabase CLI temp
 supabase/.temp/
+
+# vendored briefy-final
+briefy-final/node_modules/
+briefy-final/web/node_modules/
+briefy-final/web/.next/
+briefy-final/.env
+briefy-final/web/.env.local
