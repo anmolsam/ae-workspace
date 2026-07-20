@@ -4,6 +4,7 @@ import { formatDateTime, humanizeTimeRemaining } from '../../lib/format';
 import { useBrief } from '../../hooks/useBrief';
 import { BriefStatusChip } from './BriefStatusChip';
 import { BriefSectionView } from './BriefSectionView';
+import { BriefDetailView } from './BriefDetailView';
 import { Badge } from '../ui/Badge';
 import { EmptyState } from '../ui/EmptyState';
 import { ErrorState } from '../ui/ErrorState';
@@ -30,7 +31,9 @@ export function MeetingRow({ meeting, onGenerated }: MeetingRowProps) {
     brief?.jobStatus === 'processing';
   const failed = brief?.jobStatus === 'failed';
 
-  const sortedSections = brief
+  // briefy-final output: the brief carries the exact BriefDetail (sectionStatus).
+  const hasDetail = Boolean(brief?.sectionStatus);
+  const sortedSections = brief?.sections
     ? [...brief.sections].sort((a, b) => a.order - b.order)
     : [];
 
@@ -107,7 +110,11 @@ export function MeetingRow({ meeting, onGenerated }: MeetingRowProps) {
             />
           )}
 
-          {!isGenerating && !failed && brief && brief.jobStatus === 'completed' && (
+          {!isGenerating && !failed && brief && brief.jobStatus === 'completed' && hasDetail && (
+            <BriefDetailView brief={brief} />
+          )}
+
+          {!isGenerating && !failed && brief && brief.jobStatus === 'completed' && !hasDetail && (
             <div className="space-y-5">
               {sortedSections.length === 0 && (
                 <EmptyState className="border-0 py-6" title="Brief has no content." />
@@ -115,13 +122,13 @@ export function MeetingRow({ meeting, onGenerated }: MeetingRowProps) {
               {sortedSections.map((section) => (
                 <BriefSectionView key={section.key} section={section} />
               ))}
-              {brief.sources.length > 0 && (
+              {(brief.sources?.length ?? 0) > 0 && (
                 <div className="border-t border-line pt-3">
                   <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-subtle">
                     Sources
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    {brief.sources.map((s, i) => (
+                    {brief.sources!.map((s, i) => (
                       <Badge key={`${s.provider}-${i}`} tone="neutral">
                         {s.provider} · {s.kind}
                       </Badge>

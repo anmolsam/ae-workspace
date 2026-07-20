@@ -62,72 +62,54 @@ export async function getMeetingsFromAirtable(ae) {
   return { calendarConnected: true, meetings };
 }
 
-/** GET /me/briefs/:id — full brief with dynamic sections built from Airtable. */
+const SECTION_KEYS = ['overview', 'portfolio', 'orgTree', 'revenue', 'hubspotSignals', 'hiringSignals', 'intent'];
+
+/** Section state derived exactly as shashank's lib/briefs.ts deriveSectionState. */
+function deriveSectionState(briefStatus, sectionStatusJson, key) {
+  if (briefStatus === 'Error') return 'unavailable';
+  const parsed = parseJson(sectionStatusJson, {});
+  const v = parsed[key];
+  return v === 'ready' || v === 'error' || v === 'unavailable' ? v : 'pending';
+}
+
+/**
+ * GET /me/briefs/:id — returns the EXACT briefy-final BriefDetail shape
+ * (shashank's lib/briefs.ts recordToBriefDetail), plus jobStatus for polling.
+ * The frontend renders it with the same 7 sections / labels / empty-states.
+ */
 export async function getBriefFromAirtable(recordId) {
   const row = await getBriefRow(recordId);
   const f = row.fields || {};
-  const sections = [];
-  let order = 0;
-  const add = (key, title, kind, content) => { if (hasContent(content)) sections.push({ key, title, order: order++, kind, content }); };
-
-  add('overview', 'Company Overview', 'markdown', f['Company Overview']);
-  add('portfolio', 'Portfolio / Projects', 'markdown', f['Portfolio / Projects']);
-
-  const org = parseJson(f['Org Tree'], null);
-  if (org) {
-    const kv = {};
-    if (org.upperManagement?.length) kv['Upper Management'] = org.upperManagement.map(nameOf).join(', ');
-    if (org.programManagers?.length) kv['Program Managers'] = org.programManagers.map(nameOf).join(', ');
-    if (org.estimators?.length) kv['Estimators'] = org.estimators.map(nameOf).join(', ');
-    add('orgTree', 'Org Tree', 'keyvalue', Object.keys(kv).length ? kv : null);
-  }
-
-  const revenue = {};
-  if (f['ZoomInfo Revenue']) revenue['ZoomInfo Revenue'] = String(f['ZoomInfo Revenue']);
-  if (f['Clay Revenue'] && f['Clay Revenue'] !== 'not configured') revenue['Clay Revenue'] = String(f['Clay Revenue']);
-  add('revenue', 'Revenue', 'keyvalue', Object.keys(revenue).length ? revenue : null);
-
-  if (f['ZoomInfo Intent Score']) {
-    add('intent', 'Buying Intent', 'keyvalue', { 'ZoomInfo Intent Score': String(f['ZoomInfo Intent Score']) });
-  }
-
-  const roles = parseJson(f['Open Roles'], []);
-  add('hiring', 'Hiring Signals', 'list', roles.map((r) => ({ title: r.title || r.role, url: r.url, snippet: r.source ? `via ${r.source}` : undefined })));
-
-  const priorDeals = parseJson(f['Prior Deals'], []);
-  const hs = [];
-  if (f['Last Page Visited']) hs.push({ title: `Last page: ${f['Last Page Visited']}`, snippet: f['Last Page Visited At'] || undefined });
-  for (const d of priorDeals) hs.push({ title: typeof d === 'string' ? d : (d.name || d.dealName || 'Prior deal'), snippet: d.stage });
-  add('hubspot', 'HubSpot Engagement', 'list', hs);
+  const briefStatus = f['Brief Status'] || 'Not Started';
+  const sectionStatus = Object.fromEntries(SECTION_KEYS.map((k) => [k, deriveSectionState(briefStatus, f['Section Status'], k)]));
 
   return {
     id: row.id,
     meetingId: row.id,
-    jobStatus: jobStatusFor(f['Brief Status']),
-    generatedAt: f['Last Enriched At'] || '',
-    sections,
-    sources: deriveSources(f),
+    jobStatus: jobStatusFor(briefStatus),
+    // shashank BriefDetail fields (verbatim mapping):
+    briefStatus,
+    companyName: f['Company Name'] || '',
+    dealName: f['Deal Name'] || '',
+    companyDomain: f['Company Domain'] || '',
+    meetingDateTime: typeof f['Meeting Date & Time'] === 'number' ? f['Meeting Date & Time'] : 0,
+    dealStage: f['Deal Stage'] || '',
+    dealLink: f['Deal Link'] || '',
+    sectionStatus,
+    overview: f['Company Overview'] || '',
+    portfolio: f['Portfolio / Projects'] || '',
+    orgTree: parseJson(f['Org Tree'], { estimators: [], programManagers: [], upperManagement: [] }),
+    zoomInfoRevenue: f['ZoomInfo Revenue'] || '',
+    clayRevenue: f['Clay Revenue'] || '',
+    lastPageVisited: f['Last Page Visited'] || '',
+    lastPageVisitedAt: f['Last Page Visited At'] || null,
+    priorDeals: parseJson(f['Prior Deals'], []),
+    openRoles: parseJson(f['Open Roles'], []),
+    zoomInfoIntentScore: f['ZoomInfo Intent Score'] || '',
   };
 }
 
 export async function requeueBriefFromAirtable(recordId) {
   await requeueBrief(recordId);
   return { status: 'queued', meetingId: recordId };
-}
-
-function nameOf(p) { return typeof p === 'string' ? p : (p?.name || p?.fullName || ''); }
-function hasContent(c) {
-  if (c == null) return false;
-  if (typeof c === 'string') return c.trim().length > 0;
-  if (Array.isArray(c)) return c.length > 0;
-  if (typeof c === 'object') return Object.keys(c).length > 0;
-  return true;
-}
-function deriveSources(f) {
-  const s = [];
-  if (f['Company Overview']) s.push({ provider: 'exa', kind: 'company' });
-  if (f['ZoomInfo Revenue']) s.push({ provider: 'zoominfo', kind: 'company' });
-  if (f['Open Roles']) s.push({ provider: 'serpapi', kind: 'company' });
-  if (f['Last Page Visited'] || f['Prior Deals']) s.push({ provider: 'hubspot', kind: 'company' });
-  return s;
 }

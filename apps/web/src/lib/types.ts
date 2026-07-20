@@ -134,10 +134,41 @@ export interface Brief {
   id: string;
   meetingId: string;
   jobStatus: BriefJobStatus;
-  generatedAt: string;
-  sections: BriefSection[];
-  sources: BriefSource[];
+  generatedAt?: string;
+  sections?: BriefSection[];
+  sources?: BriefSource[];
+  // briefy-final BriefDetail fields (shashank's exact output), returned inline.
+  briefStatus?: BriefDetailStatus;
+  companyName?: string;
+  dealName?: string;
+  companyDomain?: string;
+  meetingDateTime?: number;
+  dealStage?: string;
+  dealLink?: string;
+  sectionStatus?: Record<SectionKey, SectionStatusValue>;
+  overview?: string;
+  portfolio?: string;
+  orgTree?: OrgTree;
+  zoomInfoRevenue?: string;
+  clayRevenue?: string;
+  lastPageVisited?: string;
+  lastPageVisitedAt?: string | null;
+  priorDeals?: PriorDeal[];
+  openRoles?: OpenRole[];
+  zoomInfoIntentScore?: string;
 }
+
+// ---- briefy-final exact brief output (mirrors shashank's types/briefy.ts) ----
+export type BriefDetailStatus = 'Not Started' | 'Generating' | 'Ready' | 'Error' | 'Refreshing';
+export type SectionKey =
+  | 'overview' | 'portfolio' | 'orgTree' | 'revenue'
+  | 'hubspotSignals' | 'hiringSignals' | 'intent';
+export type SectionStatusValue = 'ready' | 'pending' | 'error' | 'unavailable';
+
+export interface OrgTreeContact { name?: string; title?: string; email?: string; phone?: string; source?: string; }
+export interface OrgTree { estimators: OrgTreeContact[]; programManagers: OrgTreeContact[]; upperManagement: OrgTreeContact[]; }
+export interface PriorDeal { dealName: string; dealOwner: string; dealLink: string; meetingDateTimeSales?: string | null; }
+export interface OpenRole { title: string; source: string; link: string; }
 
 export type ApiErrorKind = 'no_matching_ae' | 'domain_not_allowed' | string;
 
