@@ -51,14 +51,19 @@ function rowToMeeting(row) {
   };
 }
 
-/** GET /me/meetings — the AE's brief rows as "meetings". */
+// Cap the Briefy list to the most relevant meetings (most recent by meeting
+// date). Briefy is a pre-call tool, not a full CRM dump — showing an AE's
+// entire book is noise. Overridable via BRIEFY_MAX_MEETINGS.
+const MAX_MEETINGS = Number(process.env.BRIEFY_MAX_MEETINGS || 20);
+
+/** GET /me/meetings — the AE's most relevant brief rows as "meetings". */
 export async function getMeetingsFromAirtable(ae) {
   const rows = await listBriefsForOwners(ownerMatchers(ae));
-  const meetings = rows.map(rowToMeeting).sort((a, b) => {
-    // Ready first, then by startsAt.
-    const rank = (m) => (m.briefStatus === 'ready' ? 0 : 1);
-    return rank(a) - rank(b) || String(a.startsAt).localeCompare(String(b.startsAt));
-  });
+  const meetings = rows
+    .map(rowToMeeting)
+    // Most recent meeting date first (0 = no date sorts last).
+    .sort((a, b) => (b.startsAt ? new Date(b.startsAt).getTime() : 0) - (a.startsAt ? new Date(a.startsAt).getTime() : 0))
+    .slice(0, MAX_MEETINGS);
   return { calendarConnected: true, meetings };
 }
 
