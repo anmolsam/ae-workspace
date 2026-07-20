@@ -1,6 +1,6 @@
 # Single-service image: builds the React web app, then runs the Express API
 # which serves both the JSON API and the built web app from one origin.
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 

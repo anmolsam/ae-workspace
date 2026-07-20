@@ -17,6 +17,6 @@
     "build": "npm run build --workspace apps/web"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
