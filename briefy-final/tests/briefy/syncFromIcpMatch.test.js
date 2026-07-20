@@ -12,7 +12,7 @@ function icpRow(fields) {
   return { id: `rec_icp_${fields['Deal ID']}`, fields };
 }
 
-test('creates a new Briefy row for an eligible ICP Match Final row not yet mirrored', async () => {
+test('mirrors an enriched ICP Match row, resolving Deal Owner from HubSpot (ICP Match untouched)', async () => {
   const created = [];
   const icpRecord = icpRow({
     'Deal ID': '111',
@@ -26,7 +26,8 @@ test('creates a new Briefy row for an eligible ICP Match Final row not yet mirro
     'Pages Scraped': 'https://acmeroofing.com\nhttps://acmeroofing.com/about',
     'Trade Category': 'Roofing',
     'Enriched At': '2026-01-01T00:00:00.000Z',
-    'Deal Owner': 'Varun Sharma',
+    // NOTE: ICP Match's own Deal Owner is blank — owner comes from HubSpot.
+    'Deal Owner': '',
     'Deal Stage': 'Demo Scheduled',
     'Deal Link': 'https://app.hubspot.com/contacts/20155995/deal/111',
   });
@@ -35,6 +36,7 @@ test('creates a new Briefy row for an eligible ICP Match Final row not yet mirro
     getRecordsFn: async (table) => (table === 'ICP Match Final' ? [icpRecord] : []),
     createRecordFn: async (table, fields) => { created.push({ table, fields }); },
     createBaseFn: () => ({}),
+    resolveOwnerFn: async (dealId) => (dealId === '111' ? 'Varun Sharma' : ''),
   });
 
   assert.equal(result.checked, 1);
@@ -53,22 +55,53 @@ test('creates a new Briefy row for an eligible ICP Match Final row not yet mirro
     'Pages Scraped': 'https://acmeroofing.com\nhttps://acmeroofing.com/about',
     'Trade Category': 'Roofing',
     'ICP Enriched At': '2026-01-01T00:00:00.000Z',
-    'Deal Owner': 'Varun Sharma',
+    'Deal Owner': 'Varun Sharma', // resolved from HubSpot, not copied from source
     'Deal Stage': 'Demo Scheduled',
     'Deal Link': 'https://app.hubspot.com/contacts/20155995/deal/111',
     'Brief Status': 'Not Started',
   });
 });
 
+test('skips a deal with no resolvable owner', async () => {
+  const created = [];
+  const result = await syncFromIcpMatch({
+    getRecordsFn: async (table) => (table === 'ICP Match Final'
+      ? [icpRow({ 'Deal ID': '333', 'Enriched At': '2026-01-01T00:00:00.000Z' })] : []),
+    createRecordFn: async (table, fields) => { created.push({ table, fields }); },
+    createBaseFn: () => ({}),
+    resolveOwnerFn: async () => '', // unowned
+  });
+  assert.equal(result.created, 0);
+  assert.equal(created.length, 0);
+});
+
+test('respects the owner allowlist', async () => {
+  const created = [];
+  const rows = [
+    icpRow({ 'Deal ID': 'a', 'Enriched At': 't' }),
+    icpRow({ 'Deal ID': 'b', 'Enriched At': 't' }),
+  ];
+  const result = await syncFromIcpMatch({
+    getRecordsFn: async (table) => (table === 'ICP Match Final' ? rows : []),
+    createRecordFn: async (table, fields) => { created.push(fields); },
+    createBaseFn: () => ({}),
+    resolveOwnerFn: async (id) => (id === 'a' ? 'Sidharth S' : 'Someone Else'),
+    ownerAllowlist: ['sidharth s'],
+  });
+  assert.equal(result.created, 1);
+  assert.equal(created[0]['Deal Owner'], 'Sidharth S');
+});
+
 test('skips a row whose Deal ID is already mirrored into the Briefy base', async () => {
   const created = [];
-  const icpRecord = icpRow({ 'Deal ID': '222', 'Deal Owner': 'Varun Sharma', 'Enriched At': '2026-01-01T00:00:00.000Z' });
+  const icpRecord = icpRow({ 'Deal ID': '222', 'Enriched At': '2026-01-01T00:00:00.000Z' });
   const existingBriefyRow = { id: 'recBriefy1', fields: { 'Deal ID': '222' } };
 
   const result = await syncFromIcpMatch({
     getRecordsFn: async (table) => (table === 'ICP Match Final' ? [icpRecord] : [existingBriefyRow]),
     createRecordFn: async (table, fields) => { created.push({ table, fields }); },
     createBaseFn: () => ({}),
+    resolveOwnerFn: async () => 'Varun Sharma',
   });
 
   assert.equal(result.checked, 1);
@@ -76,7 +109,7 @@ test('skips a row whose Deal ID is already mirrored into the Briefy base', async
   assert.equal(created.length, 0);
 });
 
-test('queries ICP Match Final filtered on Deal Owner and Enriched At both set', async () => {
+test('queries ICP Match Final filtered on Enriched At and Deal ID (not Deal Owner)', async () => {
   let capturedOptions = null;
   await syncFromIcpMatch({
     getRecordsFn: async (table, options) => {
@@ -87,7 +120,7 @@ test('queries ICP Match Final filtered on Deal Owner and Enriched At both set', 
     createBaseFn: () => ({}),
   });
 
-  assert.equal(capturedOptions.filterByFormula, `AND({Deal Owner} != '', {Enriched At} != '')`);
+  assert.equal(capturedOptions.filterByFormula, `AND({Enriched At} != '', {Deal ID} != '')`);
 });
 
 test('handles zero eligible rows without creating anything', async () => {
