@@ -165,5 +165,33 @@ function qualifies(type, p, since) {
   return null;
 }
 
+// Resolve a dealstage id -> its human label from the live HubSpot pipeline
+// (cached). Falls back to a title-cased known-stage name, and never surfaces a
+// raw numeric id to the UI.
+const stagesCache = new TtlCache(30 * 60 * 1000);
+let stageLabelMap = null;
+
+async function loadStageLabels() {
+  return stagesCache.wrap('pipeline-stages', async () => {
+    try {
+      const data = await httpJson(`${config.hubspot.base}/crm/v3/pipelines/deals/${HUBSPOT_PIPELINE_ID}`, { headers: auth() });
+      const map = {};
+      for (const s of data.stages || []) map[String(s.id)] = s.label;
+      return map;
+    } catch {
+      return {};
+    }
+  });
+}
+
+export async function primeStageLabels() {
+  stageLabelMap = await loadStageLabels();
+  return stageLabelMap;
+}
+
+const titleCaseKnown = (id) =>
+  Object.entries(STAGE_IDS).find(([, v]) => v === id)?.[0]
+    ?.toLowerCase().replace(/(^|_)(\w)/g, (_, s, c) => (s ? ' ' : '') + c.toUpperCase());
+
 export const _stageLabelById = (id) =>
-  Object.entries(STAGE_IDS).find(([, v]) => v === id)?.[0]?.replaceAll('_', ' ') || id;
+  (stageLabelMap && stageLabelMap[id]) || titleCaseKnown(id) || 'Deal stage';

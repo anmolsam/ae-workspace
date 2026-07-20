@@ -1,7 +1,7 @@
 import {
   TRACKS, followUpLabel, TASK_STATE, reconcile, isOpen, isChecked,
 } from '@ae-workspace/shared';
-import { getDealsForOwner, _stageLabelById } from '../adapters/hubspot.js';
+import { getDealsForOwner, _stageLabelById, primeStageLabels } from '../adapters/hubspot.js';
 import { verifyCompletion } from './completion-verifier.js';
 import { getReconcilableTasks, upsertTask, updateTask, deleteTasksByKeys } from '../db/tasks-repo.js';
 import { db } from '../db/supabase.js';
@@ -22,6 +22,7 @@ const overdueFrom = (generatedAt) => (generatedAt ? new Date(new Date(generatedA
  * @returns {Promise<{tasks:object[]}>}  reconciled, persisted task rows.
  */
 export async function syncTasksForOwner(ownerId, { checkActivity = false } = {}) {
+  await primeStageLabels(); // resolve HubSpot stage labels (cached) before mapping
   const deals = await getDealsForOwner(ownerId);
   const now = new Date();
   const seenKeys = new Set();
