@@ -5,7 +5,9 @@ import { syncTasksForOwner, buildTaskeeView } from '../services/followup-query.j
 import { getFightScoreForOwner } from '../services/roma-fight-score.js';
 import { getFunnelForOwner } from '../services/roma-funnel.js';
 import { getUpcomingMeetings, getBrief, generateBrief } from '../services/brief-generation.js';
+import { getMeetingsFromAirtable, getBriefFromAirtable, requeueBriefFromAirtable } from '../services/briefy-airtable-service.js';
 import { getTaskById, updateTask } from '../db/tasks-repo.js';
+import { config } from '../config/index.js';
 
 export const meRouter = Router();
 meRouter.use(requireAuth);
@@ -66,7 +68,11 @@ meRouter.get('/fight-score', async (req, res, next) => {
 
 meRouter.get('/meetings', async (req, res, next) => {
   try {
-    // Google provider token forwarded by the web app (Supabase session.provider_token).
+    // Briefy source = the briefy-final Airtable base (real briefs) when enabled;
+    // otherwise the Google Calendar path.
+    if (config.briefyAirtable.enabled) {
+      return res.json(await getMeetingsFromAirtable(req.ae));
+    }
     const googleToken = req.headers['x-google-token'] || null;
     res.json(await getUpcomingMeetings(req.ae, googleToken));
   } catch (err) { next(err); }
@@ -75,6 +81,10 @@ meRouter.get('/meetings', async (req, res, next) => {
 /** Trigger (or refresh) brief generation for one meeting. Async lifecycle. */
 meRouter.post('/meetings/:id/generate-brief', async (req, res, next) => {
   try {
+    if (config.briefyAirtable.enabled) {
+      // Re-queue the Airtable row; the deployed Briefy engine rebuilds it.
+      return res.status(202).json(await requeueBriefFromAirtable(req.params.id));
+    }
     const googleToken = req.headers['x-google-token'] || null;
     const { meetings } = await getUpcomingMeetings(req.ae, googleToken);
     const meeting = meetings.find((m) => m.id === req.params.id);
@@ -88,7 +98,9 @@ meRouter.post('/meetings/:id/generate-brief', async (req, res, next) => {
 
 meRouter.get('/briefs/:briefId', async (req, res, next) => {
   try {
-    const brief = await getBrief(req.params.briefId, req.ae.ownerId);
+    const brief = config.briefyAirtable.enabled
+      ? await getBriefFromAirtable(req.params.briefId)
+      : await getBrief(req.params.briefId, req.ae.ownerId);
     if (!brief) return res.status(404).json({ error: 'not_found' });
     res.json(brief);
   } catch (err) { next(err); }

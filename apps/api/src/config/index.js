@@ -50,4 +50,14 @@ export const config = {
   },
 
   calendarEnabled: process.env.GOOGLE_CALENDAR_ENABLED === 'true',
+
+  // Briefy source = the briefy-final Airtable base (shashank's engine writes
+  // briefs there). When enabled, the Briefy tab reads real briefs from Airtable
+  // instead of Google Calendar. Scoped per-AE by the Airtable "Deal Owner".
+  briefyAirtable: {
+    enabled: process.env.BRIEFY_SOURCE === 'airtable',
+    apiKey: process.env.BRIEFY_AIRTABLE_API_KEY || '',
+    baseId: process.env.BRIEFY_AIRTABLE_BASE_ID || '',
+    table: process.env.BRIEFY_AIRTABLE_TABLE || 'Briefy',
+  },
 };
