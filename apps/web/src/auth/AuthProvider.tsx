@@ -29,6 +29,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessError, setAccessError] = useState<AuthErrorKind | null>(null);
 
   useEffect(() => {
+    // TEMPORARY dev bypass (VITE_DEV_BYPASS): skip Google SSO, mount the app
+    // with a synthetic session. Backend must have DEV_AUTH_BYPASS on too.
+    if (import.meta.env.VITE_DEV_BYPASS === 'true') {
+      setSession({
+        access_token: 'dev-bypass',
+        token_type: 'bearer',
+        user: { email: import.meta.env.VITE_DEV_EMAIL ?? 'dev@local' },
+      } as unknown as Session);
+      setLoading(false);
+      return;
+    }
+
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;

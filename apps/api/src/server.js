@@ -45,6 +45,9 @@ app.use((err, req, res, _next) => {
 
 app.listen(config.port, () => {
   console.log(`ae-workspace API on :${config.port} (${config.env})`);
+  if (config.devAuthBypass) {
+    console.warn(`⚠️  DEV_AUTH_BYPASS is ON — all requests act as ${config.devAuthEmail}. Google SSO is bypassed. DISABLE before real use.`);
+  }
   startInProcessCron();
 });
 

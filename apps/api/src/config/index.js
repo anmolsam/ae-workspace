@@ -33,6 +33,13 @@ export const config = {
 
   cronSecret: process.env.CRON_SECRET || '',
 
+  // TEMPORARY dev-auth bypass (OFF by default). When true, the API skips Google
+  // SSO token verification and acts as the AE mapped to DEV_AUTH_EMAIL. Exists
+  // only so the app can be demoed before the Google OAuth client is created.
+  // MUST be turned off once real SSO is enabled.
+  devAuthBypass: process.env.DEV_AUTH_BYPASS === 'true',
+  devAuthEmail: (process.env.DEV_AUTH_EMAIL || '').toLowerCase(),
+
   research: {
     exaKey: process.env.EXA_API_KEY || '',
     firecrawlKey: process.env.FIRECRAWL_API_KEY || '',

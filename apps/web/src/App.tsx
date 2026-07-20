@@ -26,14 +26,23 @@ export function App() {
   if (!session) return <LoginScreen />;
   if (accessError) return <AccessDeniedScreen kind={accessError} />;
 
+  const devBypass = import.meta.env.VITE_DEV_BYPASS === 'true';
+
   return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/taskee" element={<TaskeePage />} />
-        <Route path="/briefy" element={<BriefyPage />} />
-        <Route path="/revy" element={<RevyPage />} />
-        <Route path="*" element={<Navigate to="/taskee" replace />} />
-      </Route>
-    </Routes>
+    <>
+      {devBypass && (
+        <div style={{ background: '#fde68a', color: '#78350f', padding: '6px 16px', textAlign: 'center', fontSize: 12, fontWeight: 500 }}>
+          Dev preview - Google sign-in bypassed, showing {import.meta.env.VITE_DEV_EMAIL ?? 'a test AE'}'s data. Not real auth.
+        </div>
+      )}
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/taskee" element={<TaskeePage />} />
+          <Route path="/briefy" element={<BriefyPage />} />
+          <Route path="/revy" element={<RevyPage />} />
+          <Route path="*" element={<Navigate to="/taskee" replace />} />
+        </Route>
+      </Routes>
+    </>
   );
 }
