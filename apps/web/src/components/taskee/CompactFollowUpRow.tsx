@@ -24,6 +24,17 @@ function status(fu: FollowUp): { text: string; tone: 'danger' | 'muted' | 'succe
  */
 export function CompactFollowUpRow({ followUp, pending, onCheck, onUncheck }: CompactFollowUpRowProps) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copyDraft = async () => {
+    try {
+      await navigator.clipboard.writeText(followUp.draft || '');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — no-op */
+    }
+  };
   const verified = followUp.state === 'COMPLETED_VERIFIED';
   const done = followUp.checked || verified;
   const s = status(followUp);
@@ -79,7 +90,30 @@ export function CompactFollowUpRow({ followUp, pending, onCheck, onUncheck }: Co
         <div className="mt-2 space-y-2 border-t border-line pt-2">
           <p className="text-xs text-ink-subtle sm:hidden">{followUp.followUpLabel} · {followUp.stageLabel}</p>
           <div>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">AI Email Draft</p>
+            <div className="mb-1 flex items-center justify-between">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">AI Email Draft</p>
+              {followUp.draft && (
+                <button
+                  type="button"
+                  onClick={copyDraft}
+                  className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                    copied ? 'border-success text-success' : 'border-line text-ink-muted hover:bg-canvas hover:text-ink'
+                  }`}
+                >
+                  {copied ? (
+                    <>
+                      <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.5l2.2 2.2 4.8-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="8" height="8" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1.4" /><path d="M3 11V4a1 1 0 011-1h7" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>
+                      Copy
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <div className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded border border-line bg-canvas p-2.5 text-xs leading-relaxed text-ink-muted">
               {followUp.draft || 'No draft available.'}
             </div>
