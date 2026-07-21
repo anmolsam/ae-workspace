@@ -1,15 +1,18 @@
-import { exaScrape, firecrawlScrape, exaNews } from '../../lib/scrapers.js';
+import { exaScrape, firecrawlScrape, jinaScrape, exaNews } from '../../lib/scrapers.js';
 import { chatCompletion, parseJsonResponse } from '../../lib/requesty.js';
 
+// Only runs when ICP Match has NO stored content for the company (buildOverview
+// reuses existingExaContent first). Jina is the primary live scraper now — Exa
+// and Firecrawl credits are exhausted, so they're just last-ditch fallbacks.
 async function scrapeCompany(domain) {
+  const jina = await jinaScrape(domain).catch(() => null);
+  if (jina && jina.pageCount >= 1) return jina.combined;
+
   const exa = await exaScrape(domain).catch(() => null);
   if (exa && exa.pageCount >= 2) return exa.combined;
 
   const firecrawl = await firecrawlScrape(domain).catch(() => null);
-  if (exa && firecrawl) {
-    return `${exa.combined}\n\n${firecrawl.combined}`;
-  }
-  return firecrawl?.combined || exa?.combined || null;
+  return firecrawl?.combined || exa?.combined || jina?.combined || null;
 }
 
 async function synthesize(domain, combinedContent, news) {
@@ -38,10 +41,16 @@ Return ONLY valid JSON:
  *   Final (Task 2.2); reused directly instead of re-scraping when non-empty
  * @returns {Promise<{overview: string, portfolio: string, status: 'ready'|'unavailable'|'error'}>}
  */
+/** ICP Match writes a placeholder when its scrapers found nothing — treat that
+ *  as empty so we re-scrape live (via Jina) instead of summarizing "not found". */
+function isPlaceholder(content) {
+  return /PAGES SCRAPED \(0\)/i.test(content) || /Not Found\b/i.test(content) || /no data found/i.test(content);
+}
+
 export async function buildOverview(domain, existingExaContent, companyName) {
   try {
     let combinedContent = (existingExaContent || '').trim();
-    if (!combinedContent) {
+    if (!combinedContent || isPlaceholder(combinedContent)) {
       combinedContent = await scrapeCompany(domain);
     }
     if (!combinedContent) return { overview: '', portfolio: '', status: 'unavailable' };

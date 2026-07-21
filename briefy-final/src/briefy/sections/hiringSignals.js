@@ -1,15 +1,15 @@
 async function careersPageRoles(domain) {
+  // Jina (Firecrawl credits exhausted) — just checks the careers page has content.
+  const KEY = process.env.JINA_API_KEY;
+  if (!KEY) return [];
   try {
-    const res = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: `https://${domain}/careers`, formats: ['markdown'], onlyMainContent: true, timeout: 15000 }),
+    const res = await fetch(`https://r.jina.ai/https://${domain}/careers`, {
+      headers: { Authorization: `Bearer ${KEY}`, Accept: 'text/plain' },
       signal: AbortSignal.timeout(20_000),
     });
     if (!res.ok) return [];
-    const data = await res.json();
-    const text = data.data?.markdown || '';
-    if (text.trim().length < 100) return [];
+    const text = await res.text();
+    if (text.trim().length < 150) return [];
     return [{ title: 'See careers page for open roles', source: 'careers page', link: `https://${domain}/careers` }];
   } catch {
     return [];

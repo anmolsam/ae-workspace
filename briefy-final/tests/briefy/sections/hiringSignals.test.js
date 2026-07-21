@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { buildHiringSignals } from '../../../src/briefy/sections/hiringSignals.js';
 
 process.env.SERPAPI_KEY = 'test-serp-key';
-process.env.FIRECRAWL_API_KEY = 'test-firecrawl-key';
+process.env.JINA_API_KEY = 'test-jina-key';
 
 test('combines a careers-page hit and SerpAPI results into one list', async (t) => {
   t.mock.method(globalThis, 'fetch', async (url) => {
-    if (String(url).includes('firecrawl.dev')) {
-      return new Response(JSON.stringify({ data: { markdown: 'a'.repeat(150) } }), { status: 200 });
+    if (String(url).includes('r.jina.ai')) {
+      // Jina Reader returns plain text (the careers page content).
+      return new Response('Careers at Acme. '.repeat(20), { status: 200 });
     }
     if (String(url).includes('linkedin.com')) {
       return new Response(JSON.stringify({ organic_results: [{ title: 'Estimator - Acme', link: 'https://linkedin.com/jobs/1' }] }), { status: 200 });

@@ -277,3 +277,28 @@ export async function serpPeople(companyName, domain) {
   const seen = new Set();
   return people.filter((p) => { const k = p.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// JINA (r.jina.ai) — cheap scraper fallback, replaces Exa/Firecrawl when their
+// credits are exhausted. Only used when ICP Match has no stored content for the
+// company, so it barely runs.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function jinaScrape(domain) {
+  const KEY = process.env.JINA_API_KEY;
+  if (!KEY || !domain) return null;
+  const urls = [`https://${domain}`, `https://${domain}/about`, `https://${domain}/services`, `https://${domain}/projects`];
+  const pages = [];
+  for (const u of urls) {
+    try {
+      const res = await fetch(`https://r.jina.ai/${u}`, {
+        headers: { Authorization: `Bearer ${KEY}`, Accept: 'text/plain' },
+        signal: AbortSignal.timeout(25_000),
+      });
+      if (!res.ok) continue;
+      const text = await res.text();
+      if (text && text.trim().length > 120) pages.push(`=== PAGE: ${u} ===\n${text.slice(0, 4000)}`);
+    } catch { /* skip this page */ }
+  }
+  if (!pages.length) return null;
+  return { combined: `PAGES SCRAPED (${pages.length}) via Jina\n\n${pages.join('\n\n')}`, pageCount: pages.length, source: 'Jina' };
+}
