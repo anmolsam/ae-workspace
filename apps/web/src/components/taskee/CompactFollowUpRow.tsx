@@ -62,20 +62,27 @@ export function CompactFollowUpRow({ followUp, pending, onCheck, onUncheck }: Co
         </button>
 
         <span className={`flex-none text-xs font-medium tabular-nums ${toneClass}`}>{s.text}</span>
-        <svg
-          width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"
+
+        <button
+          type="button"
           onClick={() => setOpen((v) => !v)}
-          className={`flex-none cursor-pointer text-ink-subtle transition-transform ${open ? 'rotate-180' : ''}`}
+          className="flex flex-none items-center gap-1 rounded border border-line px-2 py-1 text-xs font-medium text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
         >
-          <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+          {open ? 'Hide' : 'View Draft'}
+          <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+            <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
       </div>
 
       {open && (
         <div className="mt-2 space-y-2 border-t border-line pt-2">
           <p className="text-xs text-ink-subtle sm:hidden">{followUp.followUpLabel} · {followUp.stageLabel}</p>
-          <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded border border-line bg-canvas p-2 text-xs text-ink-muted">
-            {followUp.draft || 'No draft available.'}
+          <div>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">AI Email Draft</p>
+            <div className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded border border-line bg-canvas p-2.5 text-xs leading-relaxed text-ink-muted">
+              {followUp.draft || 'No draft available.'}
+            </div>
           </div>
           <a
             href={followUp.hubspotDealUrl}
