@@ -66,29 +66,8 @@ export function BriefDetailView({ brief }: { brief: Brief }) {
   const openRoles = brief.openRoles ?? [];
 
   return (
-    <div className="flex flex-col gap-4">
-      <SectionPanel title="Overview" status={ss.overview}>
-        <p className="whitespace-pre-line text-sm text-ink-muted">{brief.overview || 'No overview found.'}</p>
-      </SectionPanel>
-
-      <SectionPanel title="Portfolio / Projects" status={ss.portfolio}>
-        <p className="whitespace-pre-line text-sm text-ink-muted">
-          {brief.portfolio || 'No portfolio/project links found on their site.'}
-        </p>
-      </SectionPanel>
-
-      <SectionPanel title="Org Tree" status={ss.orgTree}>
-        {orgEmpty ? (
-          <p className="text-sm text-ink-subtle">No contacts found.</p>
-        ) : (
-          <>
-            <ContactList label="Upper Management" contacts={org.upperManagement} />
-            <ContactList label="Program / Project Managers" contacts={org.programManagers} />
-            <ContactList label="Estimators" contacts={org.estimators} />
-          </>
-        )}
-      </SectionPanel>
-
+    <div className="flex flex-col gap-3">
+      {/* Revenue on top, full width */}
       <SectionPanel title="Revenue" status={ss.revenue}>
         <p className="text-sm text-ink-muted">{brief.zoomInfoRevenue || 'Unknown (ZoomInfo)'}</p>
         <p className={`mt-1 text-xs ${isSentinel(brief.clayRevenue || '') ? 'text-ink-subtle' : 'text-ink-muted'}`}>
@@ -96,48 +75,73 @@ export function BriefDetailView({ brief }: { brief: Brief }) {
         </p>
       </SectionPanel>
 
-      <SectionPanel title="HubSpot Signals" status={ss.hubspotSignals}>
-        <p className="text-sm text-ink-muted">
-          Last page visited: {brief.lastPageVisited || 'Unknown'}
-          {brief.lastPageVisitedAt ? ` (${new Date(brief.lastPageVisitedAt).toLocaleString()})` : ''}
-        </p>
-        {priorDeals.length > 0 && (
-          <div className="mt-3">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-subtle">Prior Deals</p>
+      {/* The other six, two columns (3 per column) */}
+      <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
+        <SectionPanel title="Overview" status={ss.overview}>
+          <p className="whitespace-pre-line text-sm text-ink-muted">{brief.overview || 'No overview found.'}</p>
+        </SectionPanel>
+
+        <SectionPanel title="Portfolio / Projects" status={ss.portfolio}>
+          <p className="whitespace-pre-line text-sm text-ink-muted">
+            {brief.portfolio || 'No portfolio/project links found on their site.'}
+          </p>
+        </SectionPanel>
+
+        <SectionPanel title="Org Tree" status={ss.orgTree}>
+          {orgEmpty ? (
+            <p className="text-sm text-ink-subtle">No contacts found.</p>
+          ) : (
+            <>
+              <ContactList label="Upper Management" contacts={org.upperManagement} />
+              <ContactList label="Program / Project Managers" contacts={org.programManagers} />
+              <ContactList label="Estimators" contacts={org.estimators} />
+            </>
+          )}
+        </SectionPanel>
+
+        <SectionPanel title="HubSpot Signals" status={ss.hubspotSignals}>
+          <p className="text-sm text-ink-muted">
+            Last page visited: {brief.lastPageVisited || 'Unknown'}
+            {brief.lastPageVisitedAt ? ` (${new Date(brief.lastPageVisitedAt).toLocaleString()})` : ''}
+          </p>
+          {priorDeals.length > 0 && (
+            <div className="mt-3">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-subtle">Prior Deals</p>
+              <ul className="space-y-1 text-sm text-ink-muted">
+                {priorDeals.map((d, i) => (
+                  <li key={i}>
+                    <a href={d.dealLink} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                      {d.dealName}
+                    </a>{' '}
+                    — {d.dealOwner}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </SectionPanel>
+
+        <SectionPanel title="Hiring Signals" status={ss.hiringSignals}>
+          {openRoles.length === 0 ? (
+            <p className="text-sm text-ink-subtle">No open roles found.</p>
+          ) : (
             <ul className="space-y-1 text-sm text-ink-muted">
-              {priorDeals.map((d, i) => (
+              {openRoles.map((r, i) => (
                 <li key={i}>
-                  <a href={d.dealLink} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-                    {d.dealName}
+                  <a href={r.link} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                    {r.title}
                   </a>{' '}
-                  — {d.dealOwner}
+                  <span className="text-xs text-ink-subtle">({r.source})</span>
                 </li>
               ))}
             </ul>
-          </div>
-        )}
-      </SectionPanel>
+          )}
+        </SectionPanel>
 
-      <SectionPanel title="Hiring Signals" status={ss.hiringSignals}>
-        {openRoles.length === 0 ? (
-          <p className="text-sm text-ink-subtle">No open roles found.</p>
-        ) : (
-          <ul className="space-y-1 text-sm text-ink-muted">
-            {openRoles.map((r, i) => (
-              <li key={i}>
-                <a href={r.link} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-                  {r.title}
-                </a>{' '}
-                <span className="text-xs text-ink-subtle">({r.source})</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </SectionPanel>
-
-      <SectionPanel title="Buying Intent" status={ss.intent}>
-        <p className="text-sm text-ink-muted">{brief.zoomInfoIntentScore || 'No score'}</p>
-      </SectionPanel>
+        <SectionPanel title="Buying Intent" status={ss.intent}>
+          <p className="text-sm text-ink-muted">{brief.zoomInfoIntentScore || 'No score'}</p>
+        </SectionPanel>
+      </div>
     </div>
   );
 }
