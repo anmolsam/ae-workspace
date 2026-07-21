@@ -49,3 +49,21 @@ export async function requeueBrief(recordId) {
     body: { fields: { 'Brief Status': 'Not Started' } },
   });
 }
+
+/** Look up a row in the read-only ICP Match base by Deal ID (to seed a brief). */
+export async function getIcpRowByDealId(dealId) {
+  const t = encodeURIComponent(config.briefyAirtable.icpTable);
+  const formula = encodeURIComponent(`{Deal ID}="${esc(dealId)}"`);
+  const url = `${AT}/${config.briefyAirtable.icpBaseId}/${t}?filterByFormula=${formula}&maxRecords=1`;
+  const d = await httpJson(url, { headers: auth() });
+  return d.records?.[0] || null;
+}
+
+/** Create a new Briefy row (used to lazily mirror a freshly-scheduled demo). */
+export async function createBriefRow(fields) {
+  cache.map.clear();
+  const d = await httpJson(`${AT}/${config.briefyAirtable.baseId}/${tbl()}`, {
+    method: 'POST', headers: auth(), body: { fields },
+  });
+  return d;
+}

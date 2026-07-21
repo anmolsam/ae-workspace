@@ -1,4 +1,5 @@
-import { listBriefsForOwners, getBriefRow, requeueBrief } from '../adapters/briefy-airtable.js';
+import { listBriefsForOwners, getBriefRow, requeueBrief, getIcpRowByDealId, createBriefRow } from '../adapters/briefy-airtable.js';
+import { getScheduledMeetings } from '../adapters/hubspot.js';
 
 /**
  * Briefy-from-Airtable service. Maps briefy-final's Airtable brief rows into the
@@ -56,15 +57,94 @@ function rowToMeeting(row) {
 // entire book is noise. Overridable via BRIEFY_MAX_MEETINGS.
 const MAX_MEETINGS = Number(process.env.BRIEFY_MAX_MEETINGS || 20);
 
-/** GET /me/meetings — the AE's most relevant brief rows as "meetings". */
+/** Coerce ICP Match's epoch-ms-text meeting date to a number. */
+function coerceMs(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'number') return raw;
+  const n = Number(raw);
+  if (Number.isFinite(n)) return n;
+  const t = Date.parse(raw);
+  return Number.isNaN(t) ? null : t;
+}
+
+/** Seed a Briefy row for a scheduled demo not yet mirrored. ALL details come
+ *  from ICP Match Final (company, domain, exa content, meeting date); HubSpot
+ *  is only the checker that told us this deal belongs to the AE. Returns the
+ *  new row, or null if the deal isn't in ICP Match Final. */
+async function ensureBriefRow(meeting, dealOwner) {
+  const icp = await getIcpRowByDealId(meeting.dealId).catch(() => null);
+  if (!icp) return null; // details live in ICP Match — nothing to seed from
+  const f = icp.fields || {};
+  const fields = {
+    'Deal ID': meeting.dealId,
+    'Deal Name': f['Deal Name'] || meeting.dealName,
+    'Company Name': f['Company Name'] || meeting.dealName,
+    'Company Domain': f['Company domain'] || '',
+    'Exa Content': f['Exa Content'] || '',
+    'Trade Category': f['Trade Category'] || '',
+    'ICP Enriched At': f['Enriched At'] || null,
+    // Meeting date from ICP Match; fall back to HubSpot's only if ICP lacks it.
+    'Meeting Date & Time': coerceMs(f['Meeting Date & Time']) ?? meeting.meetingMs,
+    'Deal Owner': dealOwner,
+    'Brief Status': 'Not Started',
+  };
+  return createBriefRow(fields).catch(() => null);
+}
+
+/**
+ * GET /me/meetings — Briefy's meeting list.
+ *
+ * The LIST is sourced from HubSpot's scheduled demos (source of truth), so any
+ * meeting booked in HubSpot appears immediately — independent of the ICP Match
+ * -> Briefy mirror timing. Each is joined to its Briefy brief row (enrichment);
+ * a scheduled demo with no brief row yet is lazily mirrored so a brief can be
+ * generated. Past/earlier briefs are appended from Airtable for history.
+ */
 export async function getMeetingsFromAirtable(ae) {
-  const rows = await listBriefsForOwners(ownerMatchers(ae));
-  const meetings = rows
-    .map(rowToMeeting)
-    // Most recent meeting date first (0 = no date sorts last).
-    .sort((a, b) => (b.startsAt ? new Date(b.startsAt).getTime() : 0) - (a.startsAt ? new Date(a.startsAt).getTime() : 0))
-    .slice(0, MAX_MEETINGS);
-  return { calendarConnected: true, meetings };
+  const stripped = (ae.aeName || '').replace(/\s*\(test mirror\)\s*/i, '').trim() || ae.aeName;
+  const [hub, rows] = await Promise.all([
+    getScheduledMeetings(ae.ownerId).catch(() => []),
+    listBriefsForOwners(ownerMatchers(ae)),
+  ]);
+
+  const byDeal = new Map(rows.map((r) => [r.fields['Deal ID'], r]));
+  const meetings = [];
+  const seen = new Set();
+
+  // 1. Authoritative scheduled meetings from HubSpot (lazily create missing rows).
+  for (const m of hub) {
+    seen.add(m.dealId);
+    let brief = byDeal.get(m.dealId);
+    if (!brief) brief = await ensureBriefRow(m, stripped);
+    meetings.push(mergedMeeting(m, brief));
+  }
+
+  // 2. Earlier/other briefs with a meeting date (history) not already listed.
+  for (const r of rows) {
+    if (seen.has(r.fields['Deal ID'])) continue;
+    meetings.push(rowToMeeting(r));
+  }
+
+  meetings.sort((a, b) => (b.startsAt ? Date.parse(b.startsAt) : 0) - (a.startsAt ? Date.parse(a.startsAt) : 0));
+  return { calendarConnected: true, meetings: meetings.slice(0, MAX_MEETINGS) };
+}
+
+/** Meeting DTO for a scheduled demo, joined to its ICP-Match-sourced brief row.
+ *  Company + meeting date come from ICP Match (the brief row); HubSpot only
+ *  supplied the fallback name/date. */
+function mergedMeeting(hubMeeting, brief) {
+  const f = brief?.fields || {};
+  const ms = (typeof f['Meeting Date & Time'] === 'number' ? f['Meeting Date & Time'] : null) ?? hubMeeting.meetingMs;
+  return {
+    id: brief?.id || `deal:${hubMeeting.dealId}`,
+    title: f['Company Name'] || hubMeeting.dealName,
+    company: f['Company Name'] || hubMeeting.dealName,
+    startsAt: ms ? new Date(ms).toISOString() : '',
+    attendees: [],
+    timeRemainingMs: ms ? ms - Date.now() : 0,
+    briefStatus: brief ? briefStatusFor(f['Brief Status']) : 'needs_data',
+    briefId: brief?.id || null,
+  };
 }
 
 const SECTION_KEYS = ['overview', 'portfolio', 'orgTree', 'revenue', 'hubspotSignals', 'hiringSignals', 'intent'];

@@ -59,5 +59,9 @@ export const config = {
     apiKey: process.env.BRIEFY_AIRTABLE_API_KEY || '',
     baseId: process.env.BRIEFY_AIRTABLE_BASE_ID || '',
     table: process.env.BRIEFY_AIRTABLE_TABLE || 'Briefy',
+    // ICP Match base (read-only) — used to seed a brief row for a freshly
+    // scheduled demo that hasn't been mirrored yet.
+    icpBaseId: process.env.BRIEFY_ICP_BASE_ID || 'appDim1drDa78bk9G',
+    icpTable: process.env.BRIEFY_ICP_TABLE || 'ICP Match Final',
   },
 };

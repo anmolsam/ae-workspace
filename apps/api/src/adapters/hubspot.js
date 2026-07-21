@@ -35,6 +35,45 @@ export async function getOwnerByEmail(email) {
   return owners.find((o) => o.email === email.toLowerCase()) || null;
 }
 
+/**
+ * The AE's scheduled meetings from HubSpot — the source of truth for "what
+ * meetings do I have". Deals in the pipeline owned by this AE with a Sales
+ * meeting date in [now - sinceDays, now + untilDays]. Briefy's meeting LIST is
+ * built from this, so any demo scheduled in HubSpot appears immediately —
+ * independent of whether ICP Match has mirrored it yet.
+ */
+export async function getScheduledMeetings(ownerId, { sinceDays = 7, untilDays = 21 } = {}) {
+  const now = Date.now();
+  const since = String(now - sinceDays * 86400000);
+  const until = String(now + untilDays * 86400000);
+  const page = await httpJson(`${config.hubspot.base}/crm/v3/objects/deals/search`, {
+    method: 'POST', headers: auth(),
+    body: {
+      filterGroups: [{
+        filters: [
+          { propertyName: DEAL_PROPS.PIPELINE, operator: 'EQ', value: HUBSPOT_PIPELINE_ID },
+          { propertyName: DEAL_PROPS.OWNER_ID, operator: 'EQ', value: ownerId },
+          { propertyName: DEAL_PROPS.MEETING_DATE, operator: 'GTE', value: since },
+          { propertyName: DEAL_PROPS.MEETING_DATE, operator: 'LTE', value: until },
+        ],
+      }],
+      properties: ['dealname', DEAL_PROPS.MEETING_DATE, DEAL_PROPS.STAGE],
+      limit: 100,
+      sorts: [{ propertyName: DEAL_PROPS.MEETING_DATE, direction: 'ASCENDING' }],
+    },
+  });
+  return (page.results || []).map((r) => {
+    const raw = r.properties?.[DEAL_PROPS.MEETING_DATE];
+    const ms = raw ? (/^\d+$/.test(String(raw)) ? Number(raw) : Date.parse(raw)) : NaN;
+    return {
+      dealId: r.id,
+      dealName: r.properties?.dealname || '(untitled)',
+      stageId: r.properties?.[DEAL_PROPS.STAGE] || '',
+      meetingMs: Number.isNaN(ms) ? null : ms,
+    };
+  }).filter((m) => m.meetingMs);
+}
+
 /** Fetch all in-pipeline deals owned by a given owner id. */
 export async function getDealsForOwner(ownerId) {
   return dealsCache.wrap(`deals:${ownerId}`, async () => {
