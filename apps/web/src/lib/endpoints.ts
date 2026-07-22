@@ -1,5 +1,6 @@
 import type { ApiClient } from './api';
 import type {
+  AeListItem,
   Brief,
   FightScoreResponse,
   FollowUp,
@@ -12,6 +13,10 @@ import type {
 
 export function getMe(api: ApiClient, signal?: AbortSignal): Promise<Me> {
   return api.request<Me>('/', { signal });
+}
+
+export function getAes(api: ApiClient, signal?: AbortSignal): Promise<{ aes: AeListItem[] }> {
+  return api.request<{ aes: AeListItem[] }>('/aes', { signal });
 }
 
 export function getFollowUps(

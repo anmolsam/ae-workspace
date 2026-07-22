@@ -4,6 +4,14 @@ export interface Me {
   email: string;
   aeName: string;
   role: Role;
+  isAdmin?: boolean;
+}
+
+export interface AeListItem {
+  ownerId: string;
+  name: string;
+  team: string;
+  score?: number;
 }
 
 export type Track = 'DS' | 'DO' | 'OI';

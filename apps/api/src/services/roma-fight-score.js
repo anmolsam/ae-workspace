@@ -1,5 +1,13 @@
 import { fetchFightScore } from '../adapters/roma.js';
 
+/** The full AE roster from ROMA (id/name/team), for the admin AE picker. */
+export async function listAes() {
+  const data = await fetchFightScore();
+  return (data.rows || [])
+    .map((r) => ({ ownerId: String(r.id), name: r.name, team: r.team, score: r.score }))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+}
+
 /**
  * RomaFightScoreService — surfaces ROMA's Fight Score for ONE AE, exactly as
  * ROMA computed it. No local calculation.

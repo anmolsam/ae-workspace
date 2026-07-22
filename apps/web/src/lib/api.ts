@@ -27,6 +27,9 @@ export interface ApiClientOptions {
   getTokens: () => AuthTokens;
   onUnauthorized: () => void;
   onForbidden: (kind: AuthErrorKind) => void;
+  // Admin "view as AE": owner id sent on every request (ignored server-side for
+  // non-admins). null = view own data.
+  getViewAsOwnerId?: () => string | null;
 }
 
 export interface RequestOptions {
@@ -46,6 +49,8 @@ export function createApiClient(opts: ApiClientOptions) {
     if (options.withGoogleToken && providerToken) {
       headers['x-google-token'] = providerToken;
     }
+    const viewAs = opts.getViewAsOwnerId?.();
+    if (viewAs) headers['x-view-as-owner'] = viewAs;
     if (options.body !== undefined) {
       headers['Content-Type'] = 'application/json';
     }

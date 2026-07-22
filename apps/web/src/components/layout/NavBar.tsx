@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useMe } from '../../hooks/useMe';
+import { AeSwitcher } from './AeSwitcher';
 
 const NAV = [
   { to: '/taskee', label: 'Taskee' },
@@ -38,6 +39,7 @@ export function NavBar() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          {me?.isAdmin && <AeSwitcher />}
           {me && (
             <span className="hidden text-sm text-ink-muted sm:inline">{me.email}</span>
           )}

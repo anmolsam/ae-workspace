@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { TASK_STATE, applyManualCheck, applyManualUncheck } from '@ae-workspace/shared';
 import { requireAuth } from '../auth/middleware.js';
 import { syncTasksForOwner, buildTaskeeView } from '../services/followup-query.js';
-import { getFightScoreForOwner } from '../services/roma-fight-score.js';
+import { getFightScoreForOwner, listAes } from '../services/roma-fight-score.js';
 import { getFunnelForOwner } from '../services/roma-funnel.js';
 import { getUpcomingMeetings, getBrief, generateBrief } from '../services/brief-generation.js';
 import { getMeetingsFromAirtable, getBriefFromAirtable, requeueBriefFromAirtable } from '../services/briefy-airtable-service.js';
@@ -12,16 +12,40 @@ import { config } from '../config/index.js';
 export const meRouter = Router();
 meRouter.use(requireAuth);
 
+const ADMIN_ROLES = new Set(['ADMIN', 'REVOPS_ADMIN', 'SALES_LEADERSHIP']);
+const isAdmin = (req) => ADMIN_ROLES.has(req.ae.role);
+
+/**
+ * The owner id whose data to serve. Regular AEs always get their own
+ * (req.ae.ownerId) — a tampered header is ignored, preserving isolation. Admins
+ * may target any AE via the `x-view-as-owner` header (set by the AE picker).
+ */
+function viewOwner(req) {
+  const target = req.headers['x-view-as-owner'];
+  if (target && isAdmin(req)) return String(target);
+  return req.ae.ownerId;
+}
+
 /** Identity for the app shell greeting + role. */
 meRouter.get('/', (req, res) => {
-  res.json({ email: req.ae.email, aeName: req.ae.aeName, role: req.ae.role });
+  res.json({ email: req.ae.email, aeName: req.ae.aeName, role: req.ae.role, isAdmin: isAdmin(req) });
+});
+
+/** Admin only: the full AE roster (for the "view as AE" picker). */
+meRouter.get('/aes', async (req, res, next) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
+  try {
+    res.json({ aes: await listAes() });
+  } catch (err) { next(err); }
 });
 
 /** Taskee list. Lightweight status-only sync on load (cron does the heavy
  *  activity reads). Overdue always sorted to the top inside buildTaskeeView. */
 meRouter.get('/follow-ups', async (req, res, next) => {
   try {
-    const { tasks } = await syncTasksForOwner(req.ae.ownerId, { checkActivity: false });
+    const owner = viewOwner(req);
+    if (!owner) return res.json({ followUps: [], summary: { dueToday: 0, overdue: 0, thisWeek: 0 } });
+    const { tasks } = await syncTasksForOwner(owner, { checkActivity: false });
     res.json(buildTaskeeView(tasks));
   } catch (err) { next(err); }
 });
@@ -52,7 +76,7 @@ meRouter.post('/follow-ups/:id/uncheck', async (req, res, next) => {
 
 meRouter.get('/funnel', async (req, res, next) => {
   try {
-    const funnel = await getFunnelForOwner(req.ae.ownerId);
+    const funnel = await getFunnelForOwner(viewOwner(req));
     if (!funnel) return res.status(404).json({ error: 'no_funnel_data', message: 'No ROMA funnel data for this AE.' });
     res.json(funnel);
   } catch (err) { next(err); }
@@ -60,7 +84,7 @@ meRouter.get('/funnel', async (req, res, next) => {
 
 meRouter.get('/fight-score', async (req, res, next) => {
   try {
-    const fs = await getFightScoreForOwner(req.ae.ownerId);
+    const fs = await getFightScoreForOwner(viewOwner(req));
     if (!fs) return res.status(404).json({ error: 'no_fight_score', message: 'No ROMA Fight Score for this AE.' });
     res.json(fs);
   } catch (err) { next(err); }
@@ -69,9 +93,9 @@ meRouter.get('/fight-score', async (req, res, next) => {
 meRouter.get('/meetings', async (req, res, next) => {
   try {
     // Briefy source = the briefy-final Airtable base (real briefs) when enabled;
-    // otherwise the Google Calendar path.
+    // otherwise the Google Calendar path. Admins can view any AE via viewOwner.
     if (config.briefyAirtable.enabled) {
-      return res.json(await getMeetingsFromAirtable(req.ae));
+      return res.json(await getMeetingsFromAirtable({ ...req.ae, ownerId: viewOwner(req) }));
     }
     const googleToken = req.headers['x-google-token'] || null;
     res.json(await getUpcomingMeetings(req.ae, googleToken));

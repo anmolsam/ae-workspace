@@ -19,6 +19,9 @@ export const config = {
     serviceRoleKey: required('SUPABASE_SERVICE_ROLE_KEY'),
   },
   allowedEmailDomain: process.env.ALLOWED_EMAIL_DOMAIN || '',
+  // Admins can sign in even if they're not an AE, and can view ANY AE's data.
+  adminEmails: (process.env.ADMIN_EMAILS || '')
+    .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
 
   hubspot: {
     token: required('HUBSPOT_TOKEN'),
