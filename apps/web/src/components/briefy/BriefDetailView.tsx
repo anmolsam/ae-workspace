@@ -75,11 +75,13 @@ export function BriefDetailView({ brief }: { brief: Brief }) {
         </p>
       </SectionPanel>
 
-      {/* The other six, two columns (3 per column) */}
+      {/* Overview spans full width (it's the meatiest); the rest flow 2-up. */}
       <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
-        <SectionPanel title="Overview" status={ss.overview}>
-          <p className="whitespace-pre-line text-sm text-ink-muted">{brief.overview || 'No overview found.'}</p>
-        </SectionPanel>
+        <div className="sm:col-span-2">
+          <SectionPanel title="Overview" status={ss.overview}>
+            <p className="whitespace-pre-line text-sm text-ink-muted">{brief.overview || 'No overview found.'}</p>
+          </SectionPanel>
+        </div>
 
         <SectionPanel title="Portfolio / Projects" status={ss.portfolio}>
           <p className="whitespace-pre-line text-sm text-ink-muted">
