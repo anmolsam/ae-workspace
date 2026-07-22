@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useMe } from '../hooks/useMe';
 import { useFollowUps } from '../hooks/useFollowUps';
 import { useFightScore, useFunnel } from '../hooks/useRoma';
+import { useViewAs } from '../lib/viewAs';
 import { greeting } from '../lib/format';
 import type { FollowUp } from '../lib/types';
 import { CompactFollowUpRow } from '../components/taskee/CompactFollowUpRow';
@@ -41,6 +42,7 @@ function Stat({ n, label, danger }: { n: number; label: string; danger?: boolean
 
 export function TaskeePage() {
   const { data: me } = useMe();
+  const { name: viewAsName } = useViewAs();
   const followUps = useFollowUps();
   const funnel = useFunnel();
   const fightScore = useFightScore();
@@ -50,7 +52,8 @@ export function TaskeePage() {
     [followUps.data],
   );
 
-  const aeName = me?.aeName ?? 'there';
+  // When an admin is viewing as an AE, greet with that AE's name.
+  const aeName = viewAsName ?? me?.aeName ?? 'there';
   const total = followUps.data?.followUps.length ?? 0;
   const firstLoad = followUps.loading && !followUps.data;
   const summary = followUps.data?.summary;
