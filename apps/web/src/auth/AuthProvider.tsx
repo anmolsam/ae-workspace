@@ -16,6 +16,7 @@ interface AuthContextValue {
   loading: boolean;
   accessError: AuthErrorKind | null;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   reportAccessError: (kind: AuthErrorKind) => void;
   clearAccessError: () => void;
@@ -69,6 +70,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Passwordless email sign-in: Supabase emails a one-time "Sign in" link that
+  // returns to the app authenticated. Verified email → mapped to the AE's
+  // HubSpot owner server-side.
+  const signInWithEmail = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: `${window.location.origin}/taskee` },
+    });
+    if (error) throw error;
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setSession(null);
@@ -87,11 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       accessError,
       signInWithGoogle,
+      signInWithEmail,
       signOut,
       reportAccessError,
       clearAccessError,
     }),
-    [session, loading, accessError, signInWithGoogle, signOut, reportAccessError, clearAccessError],
+    [session, loading, accessError, signInWithGoogle, signInWithEmail, signOut, reportAccessError, clearAccessError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
