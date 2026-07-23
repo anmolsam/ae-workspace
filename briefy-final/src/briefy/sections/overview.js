@@ -1,4 +1,4 @@
-import { exaScrape, firecrawlScrape, jinaScrape, exaNews } from '../../lib/scrapers.js';
+import { exaScrape, firecrawlScrape, jinaScrape, companyNews } from '../../lib/scrapers.js';
 import { chatCompletion, parseJsonResponse } from '../../lib/requesty.js';
 
 // Only runs when ICP Match has NO stored content for the company (buildOverview
@@ -56,7 +56,7 @@ export async function buildOverview(domain, existingExaContent, companyName) {
     if (!combinedContent) return { overview: '', portfolio: '', status: 'unavailable' };
 
     // Enrich the summary with recent web news (non-fatal if it returns nothing).
-    const news = await exaNews(companyName, domain, 5).catch(() => []);
+    const news = await companyNews(companyName, domain, 5).catch(() => []);
     const { overview, portfolio } = await synthesize(domain, combinedContent, news);
     return { overview: overview || '', portfolio: portfolio || '', status: 'ready' };
   } catch (err) {

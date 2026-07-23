@@ -1,5 +1,5 @@
 import { enrichIntent } from '../../lib/zoominfo.js';
-import { exaNews } from '../../lib/scrapers.js';
+import { companyNews } from '../../lib/scrapers.js';
 import { chatCompletion } from '../../lib/requesty.js';
 
 function getTopics() {
@@ -9,7 +9,7 @@ function getTopics() {
 /** Synthesize a buying-intent read from recent news when ZoomInfo intent is
  *  unavailable. Returns a short string, or '' if no signal. */
 async function intentFromSignals(domain, companyName) {
-  const news = await exaNews(companyName, domain, 6).catch(() => []);
+  const news = await companyNews(companyName, domain, 6).catch(() => []);
   if (!news.length) return '';
   const context = news.map((n) => `- ${n.title}: ${n.text}`).join('\n').slice(0, 4000);
   const prompt = `You are assessing BUYING INTENT for a sales rep selling AI construction takeoff/estimating software to ${companyName || domain}.

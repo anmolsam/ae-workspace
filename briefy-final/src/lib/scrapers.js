@@ -302,3 +302,34 @@ export async function jinaScrape(domain) {
   if (!pages.length) return null;
   return { combined: `PAGES SCRAPED (${pages.length}) via Jina\n\n${pages.join('\n\n')}`, pageCount: pages.length, source: 'Jina' };
 }
+
+// JINA search (s.jina.ai) — recent-news search, drop-in replacement for exaNews.
+// Same return shape: [{ title, url, text }].
+export async function jinaNews(companyName, domain, num = 5) {
+  const KEY = process.env.JINA_API_KEY;
+  if (!KEY || (!companyName && !domain)) return [];
+  const query = `${companyName || domain} construction company recent news, projects, expansion, hiring, contracts`;
+  try {
+    const res = await fetch(`https://s.jina.ai/?q=${encodeURIComponent(query)}`, {
+      headers: { Authorization: `Bearer ${KEY}`, Accept: 'application/json', 'X-Respond-With': 'no-content' },
+      signal: AbortSignal.timeout(25_000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const rows = Array.isArray(data?.data) ? data.data : [];
+    return rows.slice(0, num).map((r) => ({
+      title: r.title || '',
+      url: r.url || '',
+      text: (r.description || r.content || '').slice(0, 500),
+    })).filter((r) => r.title || r.text);
+  } catch {
+    return [];
+  }
+}
+
+// News with Jina as primary; Exa only if a key is still configured (it's exhausted).
+export async function companyNews(companyName, domain, num = 5) {
+  const jina = await jinaNews(companyName, domain, num).catch(() => []);
+  if (jina.length) return jina;
+  return exaNews(companyName, domain, num).catch(() => []);
+}
