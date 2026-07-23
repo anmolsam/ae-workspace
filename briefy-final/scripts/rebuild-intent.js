@@ -2,8 +2,9 @@
 // (Jina news -> Requesty LLM) and writes it back to Airtable. Touches NO
 // expensive providers (SerpAPI / Exa / ZoomInfo).
 //
-// Usage:  node scripts/rebuild-intent.js [inwindow|all]
+// Usage:  node scripts/rebuild-intent.js [inwindow|future|all]
 //   inwindow (default): only briefs whose meeting is within -3d..+21d (what the UI surfaces)
+//   future:             only briefs whose meeting is today 00:00 onward (all AEs, no upper bound)
 //   all:                every Ready brief with an empty intent + a domain
 import { buildIntent } from '../src/briefy/sections/intent.js';
 
@@ -17,6 +18,7 @@ const H = { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json'
 const NOW = Date.now();
 const PAST = NOW - 3 * 86400000;
 const FUT = NOW + 21 * 86400000;
+const TODAY_START = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
 const CONCURRENCY = 5;
 
 async function listRows() {
@@ -42,7 +44,9 @@ function target(r) {
   if (!(f['Company Domain'] || '').trim()) return false;
   if (SCOPE === 'all') return true;
   const m = Number(f['Meeting Date & Time']);
-  return Number.isFinite(m) && m >= PAST && m <= FUT;
+  if (!Number.isFinite(m)) return false;
+  if (SCOPE === 'future') return m >= TODAY_START;
+  return m >= PAST && m <= FUT;
 }
 
 async function update(id, fields) {
