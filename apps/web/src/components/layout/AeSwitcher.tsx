@@ -16,9 +16,15 @@ export function AeSwitcher() {
 
   useEffect(() => {
     let active = true;
-    getAes(api)
-      .then((r) => { if (active) setAes(r.aes); })
-      .catch(() => { /* non-admins get 403; leave empty */ });
+    // ROMA does a read-time refresh on a cold hit, so the first call can 500.
+    // Retry once after a short delay before giving up (non-admins get 403 — no retry).
+    const load = (retry: boolean) =>
+      getAes(api)
+        .then((r) => { if (active) setAes(r.aes); })
+        .catch((err) => {
+          if (active && retry && err?.status !== 403) setTimeout(() => load(false), 2500);
+        });
+    load(true);
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
