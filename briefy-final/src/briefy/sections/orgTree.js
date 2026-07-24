@@ -1,5 +1,6 @@
 import { searchContacts } from '../../lib/zoominfo.js';
 import { serpPeople } from '../../lib/scrapers.js';
+import { mcpAvailable, orgTreeMcp } from '../../lib/zoominfo-mcp.js';
 
 const ESTIMATOR_TITLES = ['estimator', 'estimating', 'preconstruction'];
 const PM_TITLES = ['project manager', 'program manager', 'construction manager'];
@@ -38,14 +39,24 @@ function total(tree) {
  * @param {string} [companyName]
  */
 export async function buildOrgTree(domain, companyName) {
-  const tree = emptyTree();
+  let tree = emptyTree();
   let zoomInfoError = false;
 
-  try {
-    const contacts = await searchContacts(domain, [...ESTIMATOR_TITLES, ...PM_TITLES, ...UPPER_MGMT_TITLES]);
-    fill(tree, contacts, 'ZoomInfo');
-  } catch {
-    zoomInfoError = true;
+  // Primary: ZoomInfo MCP (search by dept + enrich for email/phone/linkedin).
+  if (mcpAvailable()) {
+    try {
+      const mcpTree = await orgTreeMcp(domain);
+      if (mcpTree) tree = { estimators: mcpTree.estimators, programManagers: mcpTree.programManagers, upperManagement: mcpTree.upperManagement };
+    } catch {
+      zoomInfoError = true;
+    }
+  } else {
+    try {
+      const contacts = await searchContacts(domain, [...ESTIMATOR_TITLES, ...PM_TITLES, ...UPPER_MGMT_TITLES]);
+      fill(tree, contacts, 'ZoomInfo');
+    } catch {
+      zoomInfoError = true;
+    }
   }
 
   // Fallback: if ZoomInfo found nobody, search LinkedIn via SerpAPI.

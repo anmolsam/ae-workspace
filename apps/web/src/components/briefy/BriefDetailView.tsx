@@ -43,11 +43,17 @@ function ContactList({ label, contacts }: { label: string; contacts: OrgTreeCont
   return (
     <div className="mb-3 last:mb-0">
       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-subtle">{label}</p>
-      <ul className="space-y-1 text-sm text-ink-muted">
+      <ul className="space-y-1.5 text-sm text-ink-muted">
         {contacts.map((c, i) => (
           <li key={i}>
-            {c.name || 'Unnamed'} — {c.title || 'Unknown title'}
-            {c.email ? ` · ${c.email}` : ''}
+            <span className="text-ink">{c.name || 'Unnamed'}</span> — {c.title || 'Unknown title'}
+            {(c.email || c.phone || c.linkedin) && (
+              <span className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-ink-subtle">
+                {c.email && <a href={`mailto:${c.email}`} className="hover:text-accent">{c.email}</a>}
+                {c.phone && <span>{c.phone}</span>}
+                {c.linkedin && <a href={c.linkedin} target="_blank" rel="noreferrer" className="hover:text-accent">LinkedIn</a>}
+              </span>
+            )}
           </li>
         ))}
       </ul>
