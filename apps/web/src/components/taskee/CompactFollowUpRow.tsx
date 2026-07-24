@@ -84,6 +84,23 @@ export function CompactFollowUpRow({ followUp, pending, onCheck, onUncheck }: Co
             <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
+
+        {followUp.hubspotDealUrl && (
+          <a
+            href={followUp.hubspotDealUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title="Open deal in HubSpot"
+            aria-label="Open deal in HubSpot"
+            className="flex-none rounded-md p-1 text-ink-subtle transition-colors hover:bg-canvas hover:text-accent"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M6 3.5h6.5V10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M12.5 3.5L4 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        )}
       </div>
 
       {open && (
@@ -118,14 +135,6 @@ export function CompactFollowUpRow({ followUp, pending, onCheck, onUncheck }: Co
               {followUp.draft || 'No draft available.'}
             </div>
           </div>
-          <a
-            href={followUp.hubspotDealUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-block rounded border border-line px-2 py-1 text-xs font-medium text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
-          >
-            Open Deal in HubSpot ↗
-          </a>
         </div>
       )}
     </div>
