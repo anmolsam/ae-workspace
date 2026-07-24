@@ -191,11 +191,28 @@ export async function orgTreeMcp(domain) {
   return tree;
 }
 
-/** Company buying signals (Intent + News + Scoops) for one domain. */
-export async function companySignalsMcp(domain) {
-  if (!domain) return null;
-  return mcpCall('enrich_company_signals', {
-    companies: [{ companyWebsite: domain }],
-    signalTypes: ['Intent', 'News', 'Scoops'],
-  }).catch(() => null);
+/** Raw company signals (INTENT/NEWS/SCOOP) for ZoomInfo company ids. */
+export async function companySignalsMcp(companyIds, signalTypes = ['INTENT', 'NEWS', 'SCOOP']) {
+  const ids = (Array.isArray(companyIds) ? companyIds : [companyIds]).map(Number).filter(Boolean);
+  if (!ids.length) return null;
+  return mcpCall('enrich_company_signals', { zoominfoCompanyIds: ids, signalTypes }).catch(() => null);
+}
+
+/**
+ * ZoomInfo buying intent for a domain, as a readable one-liner.
+ * Resolves the company id, pulls INTENT signals, and summarizes the top topics.
+ * Returns '' when the company isn't matched or has no intent signals.
+ */
+export async function zoomInfoIntent(domain) {
+  if (!domain) return '';
+  const company = await enrichCompanyMcp(domain).catch(() => null);
+  if (!company?.companyId) return '';
+  const res = await companySignalsMcp([company.companyId], ['INTENT']).catch(() => null);
+  const result = res?.results?.[0];
+  const signals = (result?.signals || []).filter((s) => (s.signalType || '').toLowerCase() === 'intent');
+  if (!signals.length) return '';
+  const maxScore = Math.max(...signals.map((s) => Number(s.details?.signalScore) || 0));
+  const level = maxScore >= 80 ? 'High' : maxScore >= 50 ? 'Medium' : 'Low';
+  const topics = [...new Set(signals.map((s) => s.details?.topic).filter(Boolean))].slice(0, 4);
+  return `${level}: active ZoomInfo intent on ${topics.join(', ')} (score ${maxScore})`;
 }

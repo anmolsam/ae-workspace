@@ -1,4 +1,5 @@
 import { enrichIntent } from '../../lib/zoominfo.js';
+import { mcpAvailable, zoomInfoIntent } from '../../lib/zoominfo-mcp.js';
 import { companyNews } from '../../lib/scrapers.js';
 import { chatCompletion } from '../../lib/requesty.js';
 
@@ -35,17 +36,24 @@ Based ONLY on these signals, output ONE short line (max 25 words) describing buy
  * @returns {Promise<{intentScore: string, status: 'ready'|'unavailable'|'error'}>}
  */
 export async function buildIntent(domain, companyName) {
-  const topics = getTopics();
+  // Primary: real ZoomInfo intent signals (topics + score) via MCP.
+  if (mcpAvailable()) {
+    try {
+      const zi = await zoomInfoIntent(domain);
+      if (zi) return { intentScore: zi, status: 'ready' };
+    } catch { /* fall through */ }
+  }
 
-  // Primary: ZoomInfo intent (when topics are configured + entitled).
+  // Legacy: ZoomInfo REST intent (when topics configured + entitled).
+  const topics = getTopics();
   if (topics.length) {
     try {
       const result = await enrichIntent(domain, topics);
       if (result && (result.score ?? '') !== '') return { intentScore: String(result.score), status: 'ready' };
-    } catch { /* fall through to signal-based intent */ }
+    } catch { /* fall through to news-signal intent */ }
   }
 
-  // Fallback: derive intent from real recent-news signals (Exa + LLM).
+  // Fallback: derive intent from recent-news signals (Jina + LLM).
   const signal = await intentFromSignals(domain, companyName);
   if (signal) return { intentScore: signal, status: 'ready' };
   return { intentScore: '', status: 'ready' };
