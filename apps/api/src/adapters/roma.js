@@ -36,8 +36,11 @@ async function unlock() {
 
 async function romaGet(path) {
   const cookie = await unlock();
+  // A cold ROMA read triggers a full HubSpot sync that can exceed the default
+  // 20s — give it room so the card doesn't error on first load.
   return httpJson(`${config.roma.baseUrl}${path}`, {
     headers: cookie ? { Cookie: cookie } : {},
+    timeoutMs: 60000,
   });
 }
 

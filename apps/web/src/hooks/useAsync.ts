@@ -10,6 +10,7 @@ export interface AsyncState<T> {
 export function useAsync<T>(
   fn: (signal: AbortSignal) => Promise<T>,
   deps: unknown[],
+  opts: { retries?: number; retryDelayMs?: number } = {},
 ): AsyncState<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,6 +18,9 @@ export function useAsync<T>(
   const [nonce, setNonce] = useState(0);
   const fnRef = useRef(fn);
   fnRef.current = fn;
+  const { retries = 0, retryDelayMs = 3000 } = opts;
+  const retriesLeft = useRef(retries);
+  useEffect(() => { retriesLeft.current = retries; }, [retries, ...deps]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const controller = new AbortController();
@@ -32,6 +36,13 @@ export function useAsync<T>(
       })
       .catch((err: unknown) => {
         if (!active || controller.signal.aborted) return;
+        // Auto-retry transient failures (e.g. ROMA cold-start timeout) before
+        // surfacing an error card.
+        if (retriesLeft.current > 0) {
+          retriesLeft.current -= 1;
+          setTimeout(() => { if (active) setNonce((n) => n + 1); }, retryDelayMs);
+          return;
+        }
         setError(err instanceof Error ? err : new Error(String(err)));
         setLoading(false);
       });
