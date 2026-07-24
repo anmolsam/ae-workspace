@@ -116,6 +116,15 @@ const DEPT_QUERIES = [
 
 const PER_DEPT = Number(process.env.BRIEFY_ORGTREE_PER_DEPT || 4);
 
+// Pick the cleanest LinkedIn profile URL from a ZoomInfo externalUrls array.
+function linkedinFrom(urls) {
+  if (!Array.isArray(urls)) return '';
+  const links = urls.filter((u) => /linkedin\.com/i.test(u?.type || u?.url || '')).map((u) => u.url).filter(Boolean);
+  // Prefer a readable /in/ vanity URL over the opaque ACwAA... one; drop trailing slash.
+  const vanity = links.find((u) => /\/in\/(?!ACwAA)/i.test(u));
+  return (vanity || links[0] || '').replace(/\/$/, '');
+}
+
 // Search contacts for one department bucket → [{personId, name, title}].
 async function searchDept(domain, args) {
   const out = await mcpCall('search_contacts', { companyWebsite: domain, ...args }).catch(() => null);
@@ -146,10 +155,10 @@ export async function orgTreeMcp(domain) {
     const top = people.slice(0, PER_DEPT);
     if (!top.length) continue;
 
-    // Enrich this bucket's contacts for email/phone (small batch = reliable).
+    // Enrich this bucket's contacts for email/phone/LinkedIn (small batch = reliable).
     const enr = await mcpCall('enrich_contacts', {
       contacts: top.map((p) => ({ personId: p.personId })),
-      requiredFields: ['email', 'phone'],
+      requiredFields: ['email', 'phone', 'externalUrls'],
     }).catch(() => null);
     const byId = {};
     if (enr) {
@@ -165,7 +174,7 @@ export async function orgTreeMcp(domain) {
         title: p.title,
         email: d?.email || '',
         phone: d?.phone || '',
-        linkedin: d?.linkedInUrl || d?.linkedin || '',
+        linkedin: linkedinFrom(d?.externalUrls),
         source: 'ZoomInfo',
       });
     }
