@@ -1,5 +1,5 @@
 import { dealUrl } from '@ae-workspace/shared';
-import { listBriefsForOwners, getBriefRow, requeueBrief, getIcpRowByDealId, createBriefRow } from '../adapters/briefy-airtable.js';
+import { listBriefsForOwners, getBriefRow, requeueBrief, getIcpRowByDealId, createBriefRow, updateBriefFields } from '../adapters/briefy-airtable.js';
 import { getScheduledMeetings } from '../adapters/hubspot.js';
 import { config } from '../config/index.js';
 
@@ -133,11 +133,20 @@ export async function getMeetingsFromAirtable(ae) {
 }
 
 /** Meeting DTO for a scheduled demo, joined to its ICP-Match-sourced brief row.
- *  Company + meeting date come from ICP Match (the brief row); HubSpot only
- *  supplied the fallback name/date. */
+ *  Company comes from the brief row; the meeting DATE is authoritative from
+ *  HubSpot's live `meeting_date___time___sales` (reschedules must reflect), and
+ *  the Airtable stored date is only a fallback when HubSpot has none. */
 function mergedMeeting(hubMeeting, brief) {
   const f = brief?.fields || {};
-  const ms = (typeof f['Meeting Date & Time'] === 'number' ? f['Meeting Date & Time'] : null) ?? hubMeeting.meetingMs;
+  const ms = hubMeeting.meetingMs ?? (typeof f['Meeting Date & Time'] === 'number' ? f['Meeting Date & Time'] : null);
+
+  // If HubSpot's meeting date drifted from what's stored (a reschedule), sync it
+  // back to Airtable so the brief detail + engine see the fresh date too.
+  // Fire-and-forget — never block the meetings response.
+  const stored = typeof f['Meeting Date & Time'] === 'number' ? f['Meeting Date & Time'] : null;
+  if (brief?.id && hubMeeting.meetingMs && Math.abs(hubMeeting.meetingMs - (stored ?? 0)) > 60_000) {
+    updateBriefFields(brief.id, { 'Meeting Date & Time': hubMeeting.meetingMs }).catch(() => {});
+  }
   return {
     id: brief?.id || `deal:${hubMeeting.dealId}`,
     title: f['Company Name'] || hubMeeting.dealName,

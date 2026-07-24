@@ -50,6 +50,14 @@ export async function requeueBrief(recordId) {
   });
 }
 
+/** Patch arbitrary fields on a Briefy row (e.g. keep the meeting date in sync). */
+export async function updateBriefFields(recordId, fields) {
+  return httpJson(`${AT}/${config.briefyAirtable.baseId}/${tbl()}/${recordId}`, {
+    method: 'PATCH', headers: auth(),
+    body: { fields },
+  });
+}
+
 /** Look up a row in the read-only ICP Match base by Deal ID (to seed a brief). */
 export async function getIcpRowByDealId(dealId) {
   const t = encodeURIComponent(config.briefyAirtable.icpTable);
