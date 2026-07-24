@@ -23,6 +23,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Never let a browser/proxy serve a stale API response — data must be live
+// (a cached tab was showing old meetings/scores to some users).
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  next();
+});
+
 app.use('/api/v1/me', meRouter);
 app.use('/internal', internalRouter);
 

@@ -44,5 +44,24 @@ export function useAsync<T>(
 
   const refetch = useCallback(() => setNonce((n) => n + 1), []);
 
+  // Keep data fresh: refetch when the tab regains focus / becomes visible,
+  // throttled so rapid focus changes don't spam the API. This is why a stale
+  // tab left open would otherwise show old meetings/scores.
+  const lastFetchRef = useRef(0);
+  useEffect(() => { lastFetchRef.current = Date.now(); }, [nonce, ...deps]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const maybeRefetch = () => {
+      if (document.visibilityState === 'hidden') return;
+      if (Date.now() - lastFetchRef.current < 15000) return;
+      setNonce((n) => n + 1);
+    };
+    window.addEventListener('focus', maybeRefetch);
+    document.addEventListener('visibilitychange', maybeRefetch);
+    return () => {
+      window.removeEventListener('focus', maybeRefetch);
+      document.removeEventListener('visibilitychange', maybeRefetch);
+    };
+  }, []);
+
   return { data, loading, error, refetch };
 }
