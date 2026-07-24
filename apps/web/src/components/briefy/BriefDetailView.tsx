@@ -85,6 +85,48 @@ function CompanyFacts({ company }: { company?: CompanyInfo | null }) {
   );
 }
 
+// Fix LLM/scraper artifacts like "https://www.x.com/x.com/page" (duplicated host).
+function cleanUrl(raw: string): string {
+  let u = raw.trim().replace(/[.,;)\]]+$/, '');
+  try {
+    const parsed = new URL(u);
+    const host = parsed.hostname.replace(/^www\./, '');
+    // Collapse a path that starts by repeating the host (with or without www).
+    parsed.pathname = parsed.pathname.replace(new RegExp(`^/(?:www\\.)?${host.replace(/[.]/g, '\\.')}/?`, 'i'), '/');
+    u = parsed.toString().replace(/\/$/, '');
+  } catch { /* leave as-is if unparseable */ }
+  return u;
+}
+
+interface PortfolioItem { url?: string; label: string; }
+function parsePortfolio(text: string): PortfolioItem[] {
+  return text.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+    const m = line.match(/https?:\/\/[^\s]+/i);
+    if (!m) return { label: line.replace(/^[-•]\s*/, '') };
+    const url = cleanUrl(m[0]);
+    // Note is whatever follows " - " after the URL, else the URL host.
+    const after = line.slice(line.indexOf(m[0]) + m[0].length).replace(/^\s*[-–—:]\s*/, '').trim();
+    let host = url; try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { /* keep */ }
+    return { url, label: after || host };
+  });
+}
+
+function PortfolioList({ text }: { text: string }) {
+  const items = parsePortfolio(text);
+  if (!items.length) return <p className="text-sm text-ink-subtle">No portfolio/project links found on their site.</p>;
+  return (
+    <ul className="space-y-1 text-sm text-ink-muted">
+      {items.map((it, i) => (
+        <li key={i}>
+          {it.url
+            ? <a href={it.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">{it.label}</a>
+            : <span>{it.label}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 const isSentinel = (v: string) => v === 'pending' || v === 'not configured';
 
 export function BriefDetailView({ brief }: { brief: Brief }) {
@@ -118,9 +160,7 @@ export function BriefDetailView({ brief }: { brief: Brief }) {
         </div>
 
         <SectionPanel title="Portfolio / Projects" status={ss.portfolio}>
-          <p className="whitespace-pre-line text-sm text-ink-muted">
-            {brief.portfolio || 'No portfolio/project links found on their site.'}
-          </p>
+          <PortfolioList text={brief.portfolio || ''} />
         </SectionPanel>
 
         <SectionPanel title="Org Tree" status={ss.orgTree}>

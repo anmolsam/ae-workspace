@@ -1,7 +1,29 @@
+import { mcpAvailable, enrichCompanyMcp } from '../../lib/zoominfo-mcp.js';
+
+// Distinctive slug from a domain, e.g. "corkensteel.com" -> "corkensteel",
+// "caroneandcompanyinc.com" -> "caroneandcompanyinc". Used to keep only search
+// results that actually belong to THIS company (drops same-name-different-company
+// noise like "carOne" for "Carone & Company").
+function domainSlug(domain) {
+  return String(domain || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// Verify the company domain against ZoomInfo; return the canonical website when
+// matched (so hiring is tied to the RIGHT company), else the stored domain.
+async function verifiedDomain(domain) {
+  if (!mcpAvailable()) return domain;
+  try {
+    const c = await enrichCompanyMcp(domain);
+    if (c?.website) return c.website.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  } catch { /* keep stored */ }
+  return domain;
+}
+
 async function careersPageRoles(domain) {
-  // Jina (Firecrawl credits exhausted) — just checks the careers page has content.
   const KEY = process.env.JINA_API_KEY;
-  if (!KEY) return [];
+  if (!KEY || !domain) return [];
   try {
     const res = await fetch(`https://r.jina.ai/https://${domain}/careers`, {
       headers: { Authorization: `Bearer ${KEY}`, Accept: 'text/plain' },
@@ -16,44 +38,49 @@ async function careersPageRoles(domain) {
   }
 }
 
+// SerpAPI job search, filtered to results that actually belong to this company:
+// the link or title must reference the company's domain slug. This removes
+// same-name-different-company matches that plagued the old name-only search.
 async function serpOpenRoles(domain, companyName) {
   const key = process.env.SERPAPI_KEY;
-  if (!key) return [];
+  if (!key || !domain) return [];
+  const slug = domainSlug(domain);
+  if (!slug) return [];
   const roles = [];
-
-  try {
-    const q = encodeURIComponent(`${companyName || domain} estimator OR "project manager" jobs`);
-    const res = await fetch(`https://serpapi.com/search.json?q=${q}&num=5&api_key=${key}`, { signal: AbortSignal.timeout(20_000) });
-    if (res.ok) {
+  const belongs = (r) => {
+    const hay = norm(r.link) + ' ' + norm(r.title);
+    return hay.includes(slug);
+  };
+  const queries = [
+    `"${companyName || domain}" (careers OR jobs OR hiring) estimator OR "project manager"`,
+    `site:linkedin.com/jobs "${companyName || domain}"`,
+  ];
+  const sources = ['Google', 'LinkedIn (via Google)'];
+  for (let i = 0; i < queries.length; i++) {
+    try {
+      const q = encodeURIComponent(queries[i]);
+      const res = await fetch(`https://serpapi.com/search.json?q=${q}&num=8&api_key=${key}`, { signal: AbortSignal.timeout(20_000) });
+      if (!res.ok) continue;
       const data = await res.json();
-      for (const r of (data.organic_results || []).slice(0, 5)) {
-        roles.push({ title: r.title, source: 'Google', link: r.link });
+      for (const r of (data.organic_results || [])) {
+        if (belongs(r)) roles.push({ title: r.title, source: sources[i], link: r.link });
       }
-    }
-  } catch { /* SerpAPI failures here are non-fatal — just fewer roles found */ }
-
-  try {
-    const q2 = encodeURIComponent(`site:linkedin.com/jobs ${companyName || domain}`);
-    const res2 = await fetch(`https://serpapi.com/search.json?q=${q2}&num=5&api_key=${key}`, { signal: AbortSignal.timeout(20_000) });
-    if (res2.ok) {
-      const data2 = await res2.json();
-      for (const r of (data2.organic_results || []).slice(0, 5)) {
-        roles.push({ title: r.title, source: 'LinkedIn (via Google)', link: r.link });
-      }
-    }
-  } catch { /* non-fatal */ }
-
-  return roles;
+    } catch { /* non-fatal */ }
+  }
+  // de-dupe by link
+  const seen = new Set();
+  return roles.filter((r) => { if (seen.has(r.link)) return false; seen.add(r.link); return true; }).slice(0, 6);
 }
 
 /**
- * @param {string} domain
+ * @param {string} domain - stored/deal domain
  * @param {string} [companyName]
  * @returns {Promise<{openRoles: Array<{title: string, source: string, link: string}>, status: 'ready'|'error'}>}
  */
 export async function buildHiringSignals(domain, companyName) {
   try {
-    const [careers, serp] = await Promise.all([careersPageRoles(domain), serpOpenRoles(domain, companyName)]);
+    const vdomain = await verifiedDomain(domain);
+    const [careers, serp] = await Promise.all([careersPageRoles(vdomain), serpOpenRoles(vdomain, companyName)]);
     return { openRoles: [...careers, ...serp], status: 'ready' };
   } catch (err) {
     return { openRoles: [], status: 'error', error: err.message };
