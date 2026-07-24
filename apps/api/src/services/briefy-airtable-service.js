@@ -1,5 +1,7 @@
+import { dealUrl } from '@ae-workspace/shared';
 import { listBriefsForOwners, getBriefRow, requeueBrief, getIcpRowByDealId, createBriefRow } from '../adapters/briefy-airtable.js';
 import { getScheduledMeetings } from '../adapters/hubspot.js';
+import { config } from '../config/index.js';
 
 /**
  * Briefy-from-Airtable service. Maps briefy-final's Airtable brief rows into the
@@ -49,13 +51,14 @@ function rowToMeeting(row) {
     timeRemainingMs: meetingMs ? meetingMs - Date.now() : 0,
     briefStatus: briefStatusFor(f['Brief Status']),
     briefId: row.id,
+    hubspotUrl: f['Deal ID'] ? dealUrl(config.hubspot.portalId, f['Deal ID']) : '',
   };
 }
 
 // Cap the Briefy list to the most relevant meetings (most recent by meeting
 // date). Briefy is a pre-call tool, not a full CRM dump — showing an AE's
 // entire book is noise. Overridable via BRIEFY_MAX_MEETINGS.
-const MAX_MEETINGS = Number(process.env.BRIEFY_MAX_MEETINGS || 20);
+const MAX_MEETINGS = Number(process.env.BRIEFY_MAX_MEETINGS || 40);
 
 /** Coerce ICP Match's epoch-ms-text meeting date to a number. */
 function coerceMs(raw) {
@@ -144,6 +147,7 @@ function mergedMeeting(hubMeeting, brief) {
     timeRemainingMs: ms ? ms - Date.now() : 0,
     briefStatus: brief ? briefStatusFor(f['Brief Status']) : 'needs_data',
     briefId: brief?.id || null,
+    hubspotUrl: hubMeeting.hubspotDealUrl || (hubMeeting.dealId ? dealUrl(config.hubspot.portalId, hubMeeting.dealId) : ''),
   };
 }
 

@@ -30,17 +30,35 @@ export function CompactMeetingRow({ meeting, onGenerated }: CompactMeetingRowPro
 
   return (
     <div className="rounded-md border border-line bg-surface transition-colors hover:border-ink-subtle/40">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left">
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{meeting.title}</span>
-        <span className="hidden flex-none text-xs text-ink-subtle sm:inline">{formatDateTime(meeting.startsAt)}</span>
-        {meeting.timeRemainingMs > 0 && (
-          <span className="hidden flex-none text-xs text-ink-subtle md:inline">{humanizeTimeRemaining(meeting.timeRemainingMs)}</span>
+      <div className="flex w-full items-center gap-2.5 px-2.5 py-2">
+        <button type="button" onClick={() => setOpen((v) => !v)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{meeting.title}</span>
+          <span className="hidden flex-none text-xs text-ink-subtle sm:inline">{formatDateTime(meeting.startsAt)}</span>
+          {meeting.timeRemainingMs > 0 && (
+            <span className="hidden flex-none text-xs text-ink-subtle md:inline">{humanizeTimeRemaining(meeting.timeRemainingMs)}</span>
+          )}
+          <BriefStatusChip status={meeting.briefStatus} />
+          <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" className={`flex-none text-ink-subtle transition-transform ${open ? 'rotate-180' : ''}`}>
+            <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        {meeting.hubspotUrl && (
+          <a
+            href={meeting.hubspotUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title="Open deal in HubSpot"
+            aria-label="Open deal in HubSpot"
+            className="flex-none rounded-md p-1 text-ink-subtle transition-colors hover:bg-canvas hover:text-accent"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M6 3.5h6.5V10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M12.5 3.5L4 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
         )}
-        <BriefStatusChip status={meeting.briefStatus} />
-        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" className={`flex-none text-ink-subtle transition-transform ${open ? 'rotate-180' : ''}`}>
-          <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+      </div>
 
       {open && (
         <div className="border-t border-line px-2.5 py-2.5">

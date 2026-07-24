@@ -100,6 +100,7 @@ export interface Meeting {
   timeRemainingMs: number;
   briefStatus: BriefStatus;
   briefId: string | null;
+  hubspotUrl?: string;
 }
 
 export interface MeetingsResponse {

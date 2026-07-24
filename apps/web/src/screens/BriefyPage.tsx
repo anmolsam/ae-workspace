@@ -8,9 +8,10 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { Skeleton } from '../components/ui/Skeleton';
 
 interface Groups {
-  thisWeek: Meeting[];
-  later: Meeting[];
-  earlier: Meeting[];
+  doneThisWeek: Meeting[]; // this week, already happened (most recent first)
+  thisWeek: Meeting[];     // this week, upcoming (soonest first)
+  later: Meeting[];        // after this week (soonest first)
+  earlier: Meeting[];      // before this week (most recent first)
 }
 
 function startOfWeek(now: Date): number {
@@ -24,16 +25,21 @@ function startOfWeek(now: Date): number {
 function groupMeetings(meetings: Meeting[], now = new Date()): Groups {
   const weekStart = startOfWeek(now);
   const weekEnd = weekStart + 7 * 24 * 60 * 60 * 1000;
-  const g: Groups = { thisWeek: [], later: [], earlier: [] };
+  const nowMs = now.getTime();
+  const g: Groups = { doneThisWeek: [], thisWeek: [], later: [], earlier: [] };
   for (const m of meetings) {
     const t = m.startsAt ? new Date(m.startsAt).getTime() : NaN;
-    if (!Number.isNaN(t) && t >= weekStart && t < weekEnd) g.thisWeek.push(m);
-    else if (!Number.isNaN(t) && t >= weekEnd) g.later.push(m);
+    if (Number.isNaN(t)) { g.earlier.push(m); continue; }
+    if (t >= weekStart && t < weekEnd) {
+      (t < nowMs ? g.doneThisWeek : g.thisWeek).push(m); // split this week at "now"
+    } else if (t >= weekEnd) g.later.push(m);
     else g.earlier.push(m);
   }
-  // This week + later: soonest first. Earlier stays most-recent-first (as fetched).
-  g.thisWeek.sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
-  g.later.sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  const asc = (a: Meeting, b: Meeting) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+  const desc = (a: Meeting, b: Meeting) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
+  g.thisWeek.sort(asc);          // next upcoming first
+  g.later.sort(asc);
+  g.doneThisWeek.sort(desc);     // most recently completed first
   return g;
 }
 
@@ -97,8 +103,13 @@ export function BriefyPage() {
               </div>
             </section>
 
+            {groups.doneThisWeek.length > 0 && (
+              <CollapsibleSection title="Done this week" count={groups.doneThisWeek.length}>
+                {groups.doneThisWeek.map(row)}
+              </CollapsibleSection>
+            )}
             {groups.later.length > 0 && (
-              <CollapsibleSection title="Upcoming (later)" count={groups.later.length}>
+              <CollapsibleSection title="Upcoming" count={groups.later.length}>
                 {groups.later.map(row)}
               </CollapsibleSection>
             )}
