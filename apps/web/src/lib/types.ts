@@ -66,6 +66,7 @@ export interface FunnelResponse {
   aeName: string;
   team: string;
   stages: FunnelStage[];
+  period?: string;
   generatedAt: string;
   source: string;
 }
@@ -77,7 +78,8 @@ export interface FightScoreResponse {
   deals: number;
   known: number;
   done: number;
-  lt80: number;
+  lt80?: number;
+  period?: string;
   generatedAt: string;
   source: string;
 }

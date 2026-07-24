@@ -60,7 +60,7 @@ export function FightScoreCard({ data, loading, error, onRetry }: FightScoreCard
             <Stat label="Known" value={data.known} />
             <Stat label="Done" value={data.done} />
           </div>
-          <p className="mt-4 text-xs text-ink-subtle">All-time · from ROMA</p>
+          <p className="mt-4 text-xs text-ink-subtle">{data.period ?? 'from ROMA'}</p>
         </>
       )}
     </section>

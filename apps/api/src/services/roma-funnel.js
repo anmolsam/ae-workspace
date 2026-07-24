@@ -12,29 +12,52 @@ import { fetchAeCr } from '../adapters/roma.js';
  * These ratios are ROMA's definitions — we only sum the counts ROMA already
  * produced; we never re-derive stage membership.
  */
-const SOURCES = ['M', 'I', 'O'];
+// Marketing + SDR Inbound only (exclude O = SDR Outbound), per the AE view.
+const SOURCES = ['M', 'I'];
 const pct = (num, den) => (den > 0 ? Math.round((num / den) * 1000) / 10 : null);
 
-function sumMetric(ownerMonthly, metric) {
+/** Month keys ("YYYY-MM-01") of the quarter BEFORE the one containing `now`. */
+function prevQuarterKeys(now) {
+  const y = now.getUTCFullYear();
+  const q = Math.floor(now.getUTCMonth() / 3); // 0..3
+  let py = y, pq = q - 1;
+  if (pq < 0) { pq = 3; py = y - 1; }
+  const startMonth = pq * 3; // 0,3,6,9
+  const keys = [], labels = [];
+  for (let i = 0; i < 3; i++) {
+    const mm = String(startMonth + i + 1).padStart(2, '0');
+    keys.push(`${py}-${mm}-01`);
+  }
+  return { keys, label: `Q${pq + 1} ${py}` };
+}
+
+// Sum a metric across SOURCES, but only over the given month indices.
+function sumMetric(ownerMonthly, metric, indices) {
   let total = 0;
   for (const src of SOURCES) {
     const arr = ownerMonthly?.[src]?.[metric];
-    if (Array.isArray(arr)) total += arr.reduce((a, b) => a + (b || 0), 0);
+    if (!Array.isArray(arr)) continue;
+    for (const i of indices) total += arr[i] || 0;
   }
   return total;
 }
 
-export async function getFunnelForOwner(ownerId) {
+export async function getFunnelForOwner(ownerId, now = new Date()) {
   const data = await fetchAeCr();
   const owner = data.byOwnerBySrc?.[String(ownerId)];
   if (!owner) return null;
 
+  const monthKeys = data.monthKeys || [];
+  const { keys: qKeys, label: qLabel } = prevQuarterKeys(now);
+  // Map the previous-quarter month keys to indices in ROMA's monthly arrays.
+  const indices = qKeys.map((k) => monthKeys.indexOf(k)).filter((i) => i >= 0);
+
   const m = owner.monthly || {};
-  const demos = sumMetric(m, 'demos');
-  const dcc = sumMetric(m, 'dcc');
-  const qdd = sumMetric(m, 'qdd');
-  const pilots = sumMetric(m, 'pilots');
-  const cw = sumMetric(m, 'cw');
+  const demos = sumMetric(m, 'demos', indices);
+  const dcc = sumMetric(m, 'dcc', indices);
+  const qdd = sumMetric(m, 'qdd', indices);
+  const pilots = sumMetric(m, 'pilots', indices);
+  const cw = sumMetric(m, 'cw', indices);
 
   const stages = [
     { key: 'demos', label: 'Total Demos', count: demos, pct: 100, basisLabel: '' },
@@ -48,6 +71,7 @@ export async function getFunnelForOwner(ownerId) {
     aeName: owner.name,
     team: (owner.team || '').replace(/ AEs$/, ''),
     stages,
+    period: `${qLabel} · Marketing + Inbound`,
     generatedAt: data.generated,
     source: 'roma',
   };

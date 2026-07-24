@@ -59,7 +59,7 @@ export function FunnelCard({ data, loading, error, onRetry }: FunnelCardProps) {
               );
             })}
           </ol>
-          <p className="mt-4 text-xs text-ink-subtle">from ROMA</p>
+          <p className="mt-4 text-xs text-ink-subtle">{data.period ?? 'from ROMA'}</p>
         </>
       )}
     </section>
