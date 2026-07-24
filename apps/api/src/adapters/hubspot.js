@@ -16,8 +16,8 @@ const dealsCache = new TtlCache(60 * 1000);
 
 /** Map a verified Google Workspace email -> HubSpot owner { id, email, name }.
  *  This is the SSO -> AE bridge. ROMA keys on owner id, so we return that. */
-export async function getOwnerByEmail(email) {
-  const owners = await ownersCache.wrap('owners', async () => {
+function loadOwners() {
+  return ownersCache.wrap('owners', async () => {
     const out = [];
     let after;
     do {
@@ -32,7 +32,18 @@ export async function getOwnerByEmail(email) {
     } while (after);
     return out;
   });
+}
+
+export async function getOwnerByEmail(email) {
+  const owners = await loadOwners();
   return owners.find((o) => o.email === email.toLowerCase()) || null;
+}
+
+/** Resolve a HubSpot owner by id → { id, email, name }. Uses the cached owner list. */
+export async function getOwnerById(ownerId) {
+  if (!ownerId) return null;
+  const owners = await loadOwners();
+  return owners.find((o) => o.id === String(ownerId)) || null;
 }
 
 /**

@@ -6,6 +6,7 @@ import { getFightScoreForOwner, getFightScoreOverall, listAes } from '../service
 import { getFunnelForOwner, getFunnelOverall } from '../services/roma-funnel.js';
 import { getUpcomingMeetings, getBrief, generateBrief } from '../services/brief-generation.js';
 import { getMeetingsFromAirtable, getBriefFromAirtable, requeueBriefFromAirtable } from '../services/briefy-airtable-service.js';
+import { getOwnerById } from '../adapters/hubspot.js';
 import { getTaskById, updateTask } from '../db/tasks-repo.js';
 import { config } from '../config/index.js';
 
@@ -24,6 +25,21 @@ function viewOwner(req) {
   const target = req.headers['x-view-as-owner'];
   if (target && isAdmin(req)) return String(target);
   return req.ae.ownerId;
+}
+
+/**
+ * Full identity of the AE whose data to serve. Critical for Briefy, which
+ * matches Airtable briefs by the AE's NAME — an admin viewing another AE must
+ * use THAT AE's name (resolved from HubSpot by id), not the admin's, or briefs
+ * from the wrong owner leak in.
+ */
+async function viewAe(req) {
+  const target = req.headers['x-view-as-owner'];
+  if (target && isAdmin(req) && String(target) !== String(req.ae.ownerId)) {
+    const owner = await getOwnerById(String(target));
+    return { ownerId: String(target), aeName: owner?.name || '', email: owner?.email || '' };
+  }
+  return { ownerId: req.ae.ownerId, aeName: req.ae.aeName, email: req.ae.email };
 }
 
 /** Identity for the app shell greeting + role. */
@@ -98,7 +114,7 @@ meRouter.get('/meetings', async (req, res, next) => {
     // Briefy source = the briefy-final Airtable base (real briefs) when enabled;
     // otherwise the Google Calendar path. Admins can view any AE via viewOwner.
     if (config.briefyAirtable.enabled) {
-      return res.json(await getMeetingsFromAirtable({ ...req.ae, ownerId: viewOwner(req) }));
+      return res.json(await getMeetingsFromAirtable(await viewAe(req)));
     }
     const googleToken = req.headers['x-google-token'] || null;
     res.json(await getUpcomingMeetings(req.ae, googleToken));
