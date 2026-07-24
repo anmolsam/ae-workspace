@@ -1,4 +1,4 @@
-import type { Brief, OrgTreeContact, SectionStatusValue } from '../../lib/types';
+import type { Brief, CompanyInfo, OrgTreeContact, SectionStatusValue } from '../../lib/types';
 
 /**
  * Faithful port of briefy-final's brief output (shashank's components/sections
@@ -61,6 +61,30 @@ function ContactList({ label, contacts }: { label: string; contacts: OrgTreeCont
   );
 }
 
+function CompanyFacts({ company }: { company?: CompanyInfo | null }) {
+  if (!company) return null;
+  const facts: Array<[string, string]> = [];
+  if (company.employeeCount) facts.push(['Employees', String(company.employeeCount)]);
+  if (company.foundedYear) facts.push(['Founded', String(company.foundedYear)]);
+  if (company.industry) facts.push(['Industry', company.industry]);
+  if (company.location) facts.push(['HQ', company.location]);
+  if (company.phone) facts.push(['Phone', company.phone]);
+  const website = company.website;
+  if (!facts.length && !website) return null;
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
+      {facts.map(([k, v]) => (
+        <span key={k}><span className="text-ink-subtle">{k}:</span> {v}</span>
+      ))}
+      {website && (
+        <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+          {website.replace(/^https?:\/\//, '')}
+        </a>
+      )}
+    </div>
+  );
+}
+
 const isSentinel = (v: string) => v === 'pending' || v === 'not configured';
 
 export function BriefDetailView({ brief }: { brief: Brief }) {
@@ -73,10 +97,14 @@ export function BriefDetailView({ brief }: { brief: Brief }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Revenue on top, full width */}
-      <SectionPanel title="Revenue" status={ss.revenue}>
-        <p className="text-sm text-ink-muted">{brief.zoomInfoRevenue || 'Unknown (ZoomInfo)'}</p>
-        <p className={`mt-1 text-xs ${isSentinel(brief.clayRevenue || '') ? 'text-ink-subtle' : 'text-ink-muted'}`}>
+      {/* Company + revenue on top, full width */}
+      <SectionPanel title="Company" status={ss.revenue}>
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="text-lg font-semibold tabular-nums text-ink">{brief.zoomInfoRevenue || 'Unknown'}</span>
+          <span className="text-xs text-ink-subtle">revenue (ZoomInfo)</span>
+        </div>
+        <CompanyFacts company={brief.company} />
+        <p className={`mt-1.5 text-xs ${isSentinel(brief.clayRevenue || '') ? 'text-ink-subtle' : 'text-ink-muted'}`}>
           Clay: {brief.clayRevenue || 'not configured'}
         </p>
       </SectionPanel>

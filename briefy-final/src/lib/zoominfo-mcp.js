@@ -84,25 +84,34 @@ function fmtRevenue(rev) {
   return `$${n.toLocaleString()}`;
 }
 
+// Valid enrich_companies fields we want (any invalid name empties the response).
+const COMPANY_FIELDS = [
+  'name', 'website', 'revenue', 'revenueRange', 'employeeCount', 'employeeRange',
+  'foundedYear', 'primaryIndustry', 'industries', 'phone', 'city', 'state', 'country',
+  'metroArea', 'description', 'totalFundingAmount', 'recentFundingAmount', 'recentFundingDate',
+];
+
 /** Enrich a company by domain → normalized fields Briefy stores. */
 export async function enrichCompanyMcp(domain) {
   if (!domain) return null;
-  // NOTE: passing requiredFields with any unsupported name empties the response,
-  // so we take the default field set and map what's present.
-  const out = await mcpCall('enrich_companies', { companies: [{ companyWebsite: domain }] }).catch(() => null);
+  const out = await mcpCall('enrich_companies', {
+    companies: [{ companyWebsite: domain }],
+    requiredFields: COMPANY_FIELDS,
+  }).catch(() => null);
   if (!out) return null;
   const first = Object.values(out).find((v) => v && typeof v === 'object' && v.data);
   const d = first?.data || {};
   if (!d.name && !d.id) return null;
+  const firstStr = (v) => (Array.isArray(v) ? v[0] : v) || '';
   return {
     name: d.name || '',
     website: d.website || domain,
-    revenue: fmtRevenue(d.revenue),
-    employeeCount: d.employeeCount ?? '',
+    revenue: fmtRevenue(d.revenue) || d.revenueRange || '',
+    employeeCount: d.employeeCount ?? (d.employeeRange || ''),
     foundedYear: d.foundedYear || '',
-    industry: (Array.isArray(d.industries) && d.industries[0]) || d.industry || '',
+    industry: firstStr(d.primaryIndustry) || firstStr(d.industries) || '',
     phone: d.phone || '',
-    location: d.location || [d.city, d.state, d.country].filter(Boolean).join(', '),
+    location: d.metroArea || [d.city, d.state, d.country].filter(Boolean).join(', '),
     description: d.description || '',
     companyId: d.id || '',
   };

@@ -158,6 +158,7 @@ export interface Brief {
   portfolio?: string;
   orgTree?: OrgTree;
   zoomInfoRevenue?: string;
+  company?: CompanyInfo | null;
   clayRevenue?: string;
   lastPageVisited?: string;
   lastPageVisitedAt?: string | null;
@@ -173,6 +174,11 @@ export type SectionKey =
   | 'hubspotSignals' | 'hiringSignals' | 'intent';
 export type SectionStatusValue = 'ready' | 'pending' | 'error' | 'unavailable';
 
+export interface CompanyInfo {
+  name?: string; website?: string; revenue?: string; employeeCount?: string | number;
+  foundedYear?: string | number; industry?: string; phone?: string; location?: string;
+  description?: string;
+}
 export interface OrgTreeContact { name?: string; title?: string; email?: string; phone?: string; linkedin?: string; source?: string; }
 export interface OrgTree { estimators: OrgTreeContact[]; programManagers: OrgTreeContact[]; upperManagement: OrgTreeContact[]; }
 export interface PriorDeal { dealName: string; dealOwner: string; dealLink: string; meetingDateTimeSales?: string | null; }

@@ -90,6 +90,7 @@ export async function buildBrief(record, deps = {}) {
     'Portfolio / Projects': overview.portfolio,
     'Org Tree': JSON.stringify(orgTree.orgTree),
     'ZoomInfo Revenue': revenue.zoomInfoRevenue,
+    'ZoomInfo Company': JSON.stringify(revenue.company || null),
     'Clay Revenue': revenue.clayRevenue,
     'Last Page Visited': hubspotSignals.lastPageVisited,
     'Last Page Visited At': hubspotSignals.lastPageVisitedAt,

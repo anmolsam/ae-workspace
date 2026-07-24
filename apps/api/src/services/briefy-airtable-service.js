@@ -185,6 +185,7 @@ export async function getBriefFromAirtable(recordId) {
     portfolio: f['Portfolio / Projects'] || '',
     orgTree: parseJson(f['Org Tree'], { estimators: [], programManagers: [], upperManagement: [] }),
     zoomInfoRevenue: f['ZoomInfo Revenue'] || '',
+    company: parseJson(f['ZoomInfo Company'], null),
     clayRevenue: f['Clay Revenue'] || '',
     lastPageVisited: f['Last Page Visited'] || '',
     lastPageVisitedAt: f['Last Page Visited At'] || null,
