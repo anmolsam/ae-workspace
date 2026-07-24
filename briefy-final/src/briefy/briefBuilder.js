@@ -75,28 +75,42 @@ export async function buildBrief(record, deps = {}) {
     buildIntentFn(domain, companyName),
   ]);
 
+  // Never blank a previously-populated field when a section flakes (e.g. Jina/
+  // ZoomInfo rate-limits mid-build). Prefer the fresh value; if it's empty and
+  // the record already had one, keep the old. Track which sections we kept so
+  // their status stays 'ready' rather than flipping to unavailable.
+  const prior = record.fields || {};
+  const orgHasPeople = (t) => t && (t.estimators?.length || t.programManagers?.length || t.upperManagement?.length);
+  const priorOrg = (() => { try { return JSON.parse(prior['Org Tree'] || 'null'); } catch { return null; } })();
+
+  const keptIntent = !String(intent.intentScore || '').trim() && String(prior['ZoomInfo Intent Score'] || '').trim();
+  const keptOrg = !orgHasPeople(orgTree.orgTree) && orgHasPeople(priorOrg);
+  const keptOverview = !String(overview.overview || '').trim() && String(prior['Company Overview'] || '').trim();
+  const keptRevenue = !String(revenue.zoomInfoRevenue || '').trim() && String(prior['ZoomInfo Revenue'] || '').trim();
+  const keptCompany = !revenue.company && (prior['ZoomInfo Company'] || 'null') !== 'null';
+
   const sectionStatus = JSON.stringify({
-    overview: overview.status,
+    overview: keptOverview ? 'ready' : overview.status,
     portfolio: overview.status,
-    orgTree: orgTree.status,
-    revenue: revenue.status,
+    orgTree: keptOrg ? 'ready' : orgTree.status,
+    revenue: keptRevenue || keptCompany ? 'ready' : revenue.status,
     hubspotSignals: hubspotSignals.status,
     hiringSignals: hiringSignals.status,
-    intent: intent.status,
+    intent: keptIntent ? 'ready' : intent.status,
   });
 
   await updateRecordFn(TABLE, record.id, {
-    'Company Overview': overview.overview,
-    'Portfolio / Projects': overview.portfolio,
-    'Org Tree': JSON.stringify(orgTree.orgTree),
-    'ZoomInfo Revenue': revenue.zoomInfoRevenue,
-    'ZoomInfo Company': JSON.stringify(revenue.company || null),
+    'Company Overview': keptOverview ? prior['Company Overview'] : overview.overview,
+    'Portfolio / Projects': !String(overview.portfolio || '').trim() && prior['Portfolio / Projects'] ? prior['Portfolio / Projects'] : overview.portfolio,
+    'Org Tree': keptOrg ? prior['Org Tree'] : JSON.stringify(orgTree.orgTree),
+    'ZoomInfo Revenue': keptRevenue ? prior['ZoomInfo Revenue'] : revenue.zoomInfoRevenue,
+    'ZoomInfo Company': keptCompany ? prior['ZoomInfo Company'] : JSON.stringify(revenue.company || null),
     'Clay Revenue': revenue.clayRevenue,
     'Last Page Visited': hubspotSignals.lastPageVisited,
     'Last Page Visited At': hubspotSignals.lastPageVisitedAt,
     'Prior Deals': JSON.stringify(hubspotSignals.priorDeals),
     'Open Roles': JSON.stringify(hiringSignals.openRoles),
-    'ZoomInfo Intent Score': intent.intentScore,
+    'ZoomInfo Intent Score': keptIntent ? prior['ZoomInfo Intent Score'] : intent.intentScore,
     'Brief Status': 'Ready',
     'Section Status': sectionStatus,
     'Last Enriched At': new Date().toISOString(),
