@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { TASK_STATE, applyManualCheck, applyManualUncheck } from '@ae-workspace/shared';
 import { requireAuth } from '../auth/middleware.js';
 import { syncTasksForOwner, buildTaskeeView } from '../services/followup-query.js';
-import { getFightScoreForOwner, listAes } from '../services/roma-fight-score.js';
-import { getFunnelForOwner } from '../services/roma-funnel.js';
+import { getFightScoreForOwner, getFightScoreOverall, listAes } from '../services/roma-fight-score.js';
+import { getFunnelForOwner, getFunnelOverall } from '../services/roma-funnel.js';
 import { getUpcomingMeetings, getBrief, generateBrief } from '../services/brief-generation.js';
 import { getMeetingsFromAirtable, getBriefFromAirtable, requeueBriefFromAirtable } from '../services/briefy-airtable-service.js';
 import { getTaskById, updateTask } from '../db/tasks-repo.js';
@@ -74,9 +74,12 @@ meRouter.post('/follow-ups/:id/uncheck', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Admin with no AE selected → team-wide aggregate (they have no personal AE).
+const adminSelfView = (req) => isAdmin(req) && !req.headers['x-view-as-owner'];
+
 meRouter.get('/funnel', async (req, res, next) => {
   try {
-    const funnel = await getFunnelForOwner(viewOwner(req));
+    const funnel = adminSelfView(req) ? await getFunnelOverall() : await getFunnelForOwner(viewOwner(req));
     if (!funnel) return res.status(404).json({ error: 'no_funnel_data', message: 'No ROMA funnel data for this AE.' });
     res.json(funnel);
   } catch (err) { next(err); }
@@ -84,7 +87,7 @@ meRouter.get('/funnel', async (req, res, next) => {
 
 meRouter.get('/fight-score', async (req, res, next) => {
   try {
-    const fs = await getFightScoreForOwner(viewOwner(req));
+    const fs = adminSelfView(req) ? await getFightScoreOverall() : await getFightScoreForOwner(viewOwner(req));
     if (!fs) return res.status(404).json({ error: 'no_fight_score', message: 'No ROMA Fight Score for this AE.' });
     res.json(fs);
   } catch (err) { next(err); }

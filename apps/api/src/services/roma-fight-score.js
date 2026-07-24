@@ -18,6 +18,37 @@ export async function listAes() {
  * all-time score + its breakdown and do NOT fabricate a weekly series. If a
  * weekly view is wanted later, ROMA must expose it — we would not recompute.
  */
+/** Aggregate current-month Fight Score across ALL AEs (for the admin overview). */
+export async function getFightScoreOverall() {
+  const data = await fetchFightScore();
+  const monthKeys = data.monthKeys || [];
+  const months = data.months || [];
+  const curKey = monthKeys[monthKeys.length - 1];
+  const curLabel = months[months.length - 1] || curKey || 'This month';
+  const am = data.aeMonthly || {};
+
+  let known = 0, done = 0, deals = 0;
+  for (const owner of Object.values(am)) {
+    const m = owner?.[curKey];
+    if (!m) continue;
+    known += m.known || 0;
+    done += m.done || 0;
+    deals += Array.isArray(m.deals) ? m.deals.length : 0;
+  }
+  const score = known > 0 ? Math.round((done / known) * 1000) / 10 : 0;
+  return {
+    aeName: 'All AEs',
+    team: 'Team',
+    score,
+    deals,
+    known,
+    done,
+    period: `This month · ${curLabel} · all AEs`,
+    generatedAt: data.generated,
+    source: 'roma',
+  };
+}
+
 export async function getFightScoreForOwner(ownerId) {
   const data = await fetchFightScore();
   const row = (data.rows || []).find((r) => String(r.id) === String(ownerId));

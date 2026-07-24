@@ -42,6 +42,35 @@ function sumMetric(ownerMonthly, metric, indices) {
   return total;
 }
 
+function buildStages(demos, dcc, qdd, pilots, cw) {
+  return [
+    { key: 'demos', label: 'Total Demos', count: demos, pct: 100, basisLabel: '' },
+    { key: 'dcc', label: 'DCC', count: dcc, pct: pct(dcc, demos), basisLabel: 'of Total Demos' },
+    { key: 'qdd', label: 'QDD', count: qdd, pct: pct(qdd, dcc), basisLabel: 'of DCC' },
+    { key: 'pilots', label: 'Pilots', count: pilots, pct: pct(pilots, dcc), basisLabel: 'of DCC' },
+    { key: 'cw', label: 'Closed Won', count: cw, pct: pct(cw, dcc), basisLabel: 'of DCC' },
+  ];
+}
+
+/** Aggregate last-quarter (Marketing + Inbound) funnel across ALL AEs. */
+export async function getFunnelOverall(now = new Date()) {
+  const data = await fetchAeCr();
+  const monthKeys = data.monthKeys || [];
+  const { keys: qKeys, label: qLabel } = prevQuarterKeys(now);
+  const indices = qKeys.map((k) => monthKeys.indexOf(k)).filter((i) => i >= 0);
+  const owners = Object.values(data.byOwnerBySrc || {});
+  const agg = (metric) => owners.reduce((sum, o) => sum + sumMetric(o.monthly || {}, metric, indices), 0);
+  const demos = agg('demos'), dcc = agg('dcc'), qdd = agg('qdd'), pilots = agg('pilots'), cw = agg('cw');
+  return {
+    aeName: 'All AEs',
+    team: 'Team',
+    stages: buildStages(demos, dcc, qdd, pilots, cw),
+    period: `${qLabel} · Marketing + Inbound · all AEs`,
+    generatedAt: data.generated,
+    source: 'roma',
+  };
+}
+
 export async function getFunnelForOwner(ownerId, now = new Date()) {
   const data = await fetchAeCr();
   const owner = data.byOwnerBySrc?.[String(ownerId)];
@@ -59,13 +88,7 @@ export async function getFunnelForOwner(ownerId, now = new Date()) {
   const pilots = sumMetric(m, 'pilots', indices);
   const cw = sumMetric(m, 'cw', indices);
 
-  const stages = [
-    { key: 'demos', label: 'Total Demos', count: demos, pct: 100, basisLabel: '' },
-    { key: 'dcc', label: 'DCC', count: dcc, pct: pct(dcc, demos), basisLabel: 'of Total Demos' },
-    { key: 'qdd', label: 'QDD', count: qdd, pct: pct(qdd, dcc), basisLabel: 'of DCC' },
-    { key: 'pilots', label: 'Pilots', count: pilots, pct: pct(pilots, dcc), basisLabel: 'of DCC' },
-    { key: 'cw', label: 'Closed Won', count: cw, pct: pct(cw, dcc), basisLabel: 'of DCC' },
-  ];
+  const stages = buildStages(demos, dcc, qdd, pilots, cw);
 
   return {
     aeName: owner.name,
