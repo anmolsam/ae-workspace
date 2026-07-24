@@ -48,6 +48,11 @@ export function useFollowUps(): UseFollowUpsResult {
 
   useEffect(() => {
     mounted.current = true;
+    // `load` only changes when the API client does (i.e. the admin switched AE),
+    // so clear the previous AE's follow-ups here to show the loading skeleton.
+    // Focus/interval refetches call load() directly and don't hit this reset.
+    setData(null);
+    setError(null);
     setLoading(true);
     void load();
     return () => {

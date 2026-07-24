@@ -10,7 +10,7 @@ export interface AsyncState<T> {
 export function useAsync<T>(
   fn: (signal: AbortSignal) => Promise<T>,
   deps: unknown[],
-  opts: { retries?: number; retryDelayMs?: number } = {},
+  opts: { retries?: number; retryDelayMs?: number; resetOnDepsChange?: boolean } = {},
 ): AsyncState<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -18,9 +18,21 @@ export function useAsync<T>(
   const [nonce, setNonce] = useState(0);
   const fnRef = useRef(fn);
   fnRef.current = fn;
-  const { retries = 0, retryDelayMs = 3000 } = opts;
+  const { retries = 0, retryDelayMs = 3000, resetOnDepsChange = false } = opts;
   const retriesLeft = useRef(retries);
   useEffect(() => { retriesLeft.current = retries; }, [retries, ...deps]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When the deps change (e.g. admin switches AE), drop the previous result so
+  // the loading skeleton shows instead of the old AE's data. Focus/retry use
+  // `nonce` (not deps), so they never trigger this reset — no skeleton flash.
+  const initialisedRef = useRef(false);
+  useEffect(() => {
+    if (!resetOnDepsChange) return;
+    if (!initialisedRef.current) { initialisedRef.current = true; return; }
+    setData(null);
+    setError(null);
+    setLoading(true);
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const controller = new AbortController();

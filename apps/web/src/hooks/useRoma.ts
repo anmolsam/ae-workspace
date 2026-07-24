@@ -5,10 +5,10 @@ import type { FightScoreResponse, FunnelResponse } from '../lib/types';
 
 export function useFunnel() {
   const api = useApiClient();
-  return useAsync<FunnelResponse>((signal) => getFunnel(api, signal), [api], { retries: 2 });
+  return useAsync<FunnelResponse>((signal) => getFunnel(api, signal), [api], { retries: 2, resetOnDepsChange: true });
 }
 
 export function useFightScore() {
   const api = useApiClient();
-  return useAsync<FightScoreResponse>((signal) => getFightScore(api, signal), [api], { retries: 2 });
+  return useAsync<FightScoreResponse>((signal) => getFightScore(api, signal), [api], { retries: 2, resetOnDepsChange: true });
 }

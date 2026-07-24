@@ -5,5 +5,5 @@ import type { MeetingsResponse } from '../lib/types';
 
 export function useMeetings() {
   const api = useApiClient();
-  return useAsync<MeetingsResponse>((signal) => getMeetings(api, signal), [api]);
+  return useAsync<MeetingsResponse>((signal) => getMeetings(api, signal), [api], { resetOnDepsChange: true });
 }
